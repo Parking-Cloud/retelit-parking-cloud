@@ -6,7 +6,7 @@ const { neon } = require('@neondatabase/serverless');
 const bcrypt = require('bcryptjs');
 
 exports.handler = async () => {
-  const sql = neon(process.env.DATABASE_URL);
+  const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
   try {
     // Tabella admins (facility manager + super admin Parking Cloud)
