@@ -762,16 +762,22 @@ function pwStrength(inputId,barId,hintId){
   hint.textContent=val.length===0?'Min. 8 caratteri':l[Math.max(0,s-1)];
 }
 
-function setFmPw(){
+async function setFmPw(){
   const pw1=document.getElementById('fm-pw1').value,pw2=document.getElementById('fm-pw2').value;
   const errEl=document.getElementById('fm-pw-err');errEl.classList.remove('show');
   if(pw1.length<8){errEl.textContent='Almeno 8 caratteri';errEl.classList.add('show');return}
   if(pw1!==pw2){errEl.classList.add('show');return}
-  // handled by API call below
-  document.getElementById('fm-nav-name').textContent=fullN(fm)+' · '+fm.company;
-  document.getElementById('fm-pass-wrap').style.display='block';
-  document.getElementById('fm-firstlogin').style.display='none';
-  renderFmDash();goView('view-fm');showToast('✅ Password impostata. Benvenuto!','blue');
+  try{
+    const res=await API.auth({type:'admin_set_password',email:fData._fmPending,password:pw1});
+    if(!res.ok){errEl.textContent=res.error||'Errore';errEl.classList.add('show');return}
+    const admin=res.admin;
+    session={type:'fm',email:admin.email};setSession(session);
+    admins=admins.map(a=>a.email===admin.email?{...a,...admin}:a);
+    document.getElementById('fm-nav-name').textContent=fullN(admin)+' · '+(admin.azienda||'');
+    document.getElementById('fm-pass-wrap').style.display='block';
+    document.getElementById('fm-firstlogin').style.display='none';
+    await loadState();renderFmDash();goView('view-fm');showToast('✅ Password impostata. Benvenuto!','blue');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 
 function adminLogout(){

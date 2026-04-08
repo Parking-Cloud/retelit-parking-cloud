@@ -3,6 +3,7 @@
 // Body: { type: 'user_check' | 'admin_login' | 'admin_set_password', ...params }
 
 const { neon } = require('@neondatabase/serverless');
+const bcrypt = require('bcryptjs');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST')
@@ -32,7 +33,8 @@ exports.handler = async (event) => {
         return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'not_found' }) };
       if (admin.first_login)
         return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'first_login', nome: admin.nome, cognome: admin.cognome, azienda: admin.azienda }) };
-      if (admin.password !== password)
+      const valid = await bcrypt.compare(password, admin.password);
+      if (!valid)
         return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'wrong_password' }) };
       return {
         statusCode: 200,
@@ -48,7 +50,8 @@ exports.handler = async (event) => {
       const [admin] = await sql`SELECT * FROM admins WHERE email = ${email.toLowerCase()} AND first_login = true`;
       if (!admin)
         return { statusCode: 404, body: JSON.stringify({ error: 'Admin non trovato o già attivato' }) };
-      await sql`UPDATE admins SET password = ${password}, first_login = false WHERE email = ${email.toLowerCase()}`;
+      const hashed = await bcrypt.hash(password, 10);
+      await sql`UPDATE admins SET password = ${hashed}, first_login = false WHERE email = ${email.toLowerCase()}`;
       return {
         statusCode: 200,
         body: JSON.stringify({ ok: true, admin: { email: admin.email, nome: admin.nome, cognome: admin.cognome, azienda: admin.azienda, ruolo: admin.ruolo } })
