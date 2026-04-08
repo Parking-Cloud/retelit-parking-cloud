@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parking Cloud · Retelit Spa</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* ── PALETTE PRIMARIA ── */
+  --blue:    #1546D4;   /* Palatinate Blue */
+  --blue-80: rgba(21,70,212,.8);
+  --blue-20: rgba(21,70,212,.1);
+  --snow:    #FCF8F9;   /* Snow */
+  --night:   #0F0F0F;   /* Night */
+  --timber:  #D6D6D6;   /* Timberwolf */
+  /* ── PALETTE SECONDARIA ── */
+  --sky:     #30C5FF;   /* Deep Sky */
+  --sky-20:  rgba(48,197,255,.12);
+  --white:   #FFFFFF;
+  /* ── SEMANTICI ── */
+  --amber:   #f59e0b;
+  --red:     #ef4444;
+  --text:    #0F0F0F;
+  --muted:   #6b7280;
+  --light:   #F5F7FF;   /* Snow + blue tint */
+  --border:  rgba(21,70,212,.12);
+  --radius:  16px;
+  --radius-sm:10px;
+  --font:    'Nunito', sans-serif;
+}
+body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100vh}
+.view{display:none}.view.active{display:block}
+
+/* ── NAVBAR ── */
+.navbar{background:var(--blue);padding:0 24px;height:62px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(21,70,212,.25)}
+.nav-logo{display:flex;align-items:center}
+.nav-logo-svg{height:34px;width:auto}
+.nav-r{display:flex;align-items:center;gap:10px}
+.nav-pill{font-size:11px;font-weight:700;color:rgba(255,255,255,.55);background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);padding:4px 12px;border-radius:20px;white-space:nowrap}
+.nav-role{font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+.role-super{background:rgba(48,197,255,.2);color:#7fe8ff}
+.role-fm{background:rgba(255,255,255,.15);color:var(--white)}
+.nav-clock{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--sky)}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--sky);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.nav-out{background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font);font-size:11px;cursor:pointer;padding:4px 8px;border-radius:6px}
+.nav-out:hover{color:var(--red)}
+
+/* ── AUTH PAGE ── */
+.auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 20px;background:var(--blue)}
+.auth-page::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 70% 20%, rgba(48,197,255,.15) 0%, transparent 60%);pointer-events:none}
+.auth-card{background:var(--white);border-radius:22px;padding:38px 30px 30px;width:100%;max-width:390px;box-shadow:0 20px 60px rgba(21,70,212,.3);position:relative}
+.auth-logo{display:flex;align-items:center;justify-content:center;margin-bottom:28px}
+.auth-logo-svg{height:80px;width:auto}
+.auth-logo-txt{font-size:20px;font-weight:800;color:var(--night)}
+.auth-logo-txt span{color:var(--blue)}
+.auth-title{font-size:15px;font-weight:700;text-align:center;margin-bottom:4px;color:var(--night)}
+.auth-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:24px;line-height:1.5}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:22px;background:var(--light);border-radius:11px;padding:4px}
+.auth-tab{padding:9px 6px;border-radius:8px;border:none;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);transition:all .18s;line-height:1.3;text-align:center}
+.auth-tab.active{background:var(--white);color:var(--blue);box-shadow:0 1px 6px rgba(21,70,212,.15)}
+
+/* ── FIELDS ── */
+.field{margin-bottom:14px}
+.field-label{font-size:10px;font-weight:800;color:var(--muted);letter-spacing:.08em;margin-bottom:5px;text-transform:uppercase}
+.fi{width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--timber);font-family:var(--font);font-size:13px;color:var(--text);background:var(--snow);outline:none;transition:border-color .15s,background .15s}
+.fi:focus{border-color:var(--blue);background:white}
+.fi.error{border-color:var(--red)}
+.fi.plate{text-transform:uppercase;letter-spacing:.12em;font-weight:800;font-size:15px;text-align:center}
+.field-err{font-size:11px;color:var(--red);margin-top:6px;display:none;line-height:1.4}
+.field-err.show{display:block}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.blocked{background:#FEF2F2;border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:12px 14px;font-size:12px;color:#991b1b;line-height:1.6;margin-bottom:14px;display:none}
+.blocked.show{display:block}
+.info-box{background:var(--blue-20);border:1px solid rgba(21,70,212,.2);border-radius:9px;padding:10px 14px;font-size:12px;color:var(--blue);margin-bottom:18px;line-height:1.6;font-weight:600}
+
+/* ── BUTTONS ── */
+.btn-primary{width:100%;padding:13px;border-radius:9px;background:var(--blue);color:white;font-family:var(--font);font-size:14px;font-weight:800;border:none;cursor:pointer;transition:background .15s;letter-spacing:-.1px}
+.btn-primary:hover{background:#1238b8}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-secondary{width:100%;padding:13px;border-radius:9px;background:transparent;color:var(--muted);font-family:var(--font);font-size:13px;font-weight:600;border:none;cursor:pointer;margin-top:8px}
+.btn-secondary:hover{color:var(--text)}
+
+/* ── PASSWORD STRENGTH ── */
+.pw-strength{margin-top:8px;height:4px;border-radius:2px;background:var(--timber);overflow:hidden}
+.pw-bar{height:100%;border-radius:2px;width:0;transition:width .3s,background .3s}
+.pw-hint{font-size:10px;color:var(--muted);margin-top:4px;font-weight:600}
+
+/* ── HERO ── */
+.hero{background:var(--blue);padding:34px 24px 42px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(48,197,255,.2) 0%,transparent 70%);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-40px;left:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(48,197,255,.1) 0%,transparent 70%);pointer-events:none}
+.hero-ey{font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--sky);margin-bottom:12px}
+.hero-nw{display:flex;align-items:flex-end;justify-content:center;gap:4px;margin-bottom:6px}
+.hero-n{font-size:78px;font-weight:800;line-height:1;color:white;letter-spacing:-5px;transition:color .4s}
+.hero-n.warn{color:var(--amber)}.hero-n.full{color:var(--red)}
+.hero-den{font-size:26px;font-weight:300;color:rgba(255,255,255,.25);padding-bottom:10px}
+.hero-lbl{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:24px;font-weight:600}
+.hero-lbl strong{color:rgba(255,255,255,.85);font-weight:700}
+.prog-track{height:5px;border-radius:3px;background:rgba(255,255,255,.1);max-width:340px;margin:0 auto;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;background:var(--sky);transition:width .5s cubic-bezier(.4,0,.2,1),background .4s}
+.prog-fill.warn{background:var(--amber)}.prog-fill.full{background:var(--red)}
+
+/* ── CONTENT ── */
+.page-content{padding:20px 16px 32px;max-width:620px;margin:0 auto}
+.sec-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);margin-bottom:12px;opacity:.7}
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:0 2px 12px rgba(21,70,212,.06);margin-bottom:16px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:700;color:var(--night)}
+.cfg-badge{font-size:10px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--blue-20);color:var(--blue)}
+
+/* ── STATS ── */
+.stats-g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-c{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;text-align:center}
+.stat-n{font-size:26px;font-weight:800;letter-spacing:-1px}
+.stat-n.blue{color:var(--blue)}.stat-n.sky{color:var(--sky)}.stat-n.amber{color:var(--amber)}
+.stat-l{font-size:10px;color:var(--muted);font-weight:700;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+
+/* ── TOGGLE ── */
+.toggle{position:relative;width:38px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.tog-sl{position:absolute;inset:0;border-radius:22px;background:var(--timber);cursor:pointer;transition:background .2s}
+.tog-sl::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked+.tog-sl{background:var(--blue)}
+.toggle input:checked+.tog-sl::before{transform:translateX(16px)}
+.trig-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(21,70,212,.07)}
+.trig-row:last-child{border-bottom:none}
+.trig-lbl{font-size:12px;font-weight:700;color:var(--night)}
+.trig-sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+/* ── TABLE ── */
+.add-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;background:var(--blue);color:white;font-family:var(--font);font-size:12px;font-weight:800;border:none;cursor:pointer;letter-spacing:-.1px}
+.add-btn:hover{background:#1238b8}
+.add-form{display:none;padding:14px 0 4px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.add-form.open{display:block}
+.af-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.fbtn-row{display:flex;gap:8px;justify-content:flex-end}
+.fbtn{padding:8px 16px;border-radius:8px;font-family:var(--font);font-size:12px;font-weight:700;border:none;cursor:pointer}
+.fbtn-cancel{background:var(--light);color:var(--muted)}
+.fbtn-add{background:var(--blue);color:white}
+
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(21,70,212,.06)}
+.row:last-child{border-bottom:none}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.av-user{background:var(--blue-20);color:var(--blue)}
+.av-super{background:rgba(48,197,255,.15);color:#0369a1}
+.av-fm{background:rgba(21,70,212,.08);color:var(--blue)}
+.row-info{flex:1;min-width:0}
+.row-name{font-size:13px;font-weight:700;color:var(--night)}
+.row-sub{font-size:10px;color:var(--muted);margin-top:1px}
+.row-meta{display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap}
+.tag{font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:.04em}
+.t-plate{background:var(--light);border:1px solid var(--timber);color:var(--night);letter-spacing:.1em}
+.t-parked{background:rgba(48,197,255,.12);color:#0369a1}
+.t-pending{background:rgba(245,158,11,.1);color:#92400e}
+.t-firstlog{background:var(--blue-20);color:var(--blue)}
+.rb{font-size:10px;font-weight:800;padding:3px 10px;border-radius:20px;letter-spacing:.05em;text-transform:uppercase}
+.rb-super{background:rgba(48,197,255,.12);color:#0369a1}
+.rb-fm{background:var(--blue-20);color:var(--blue)}
+.del-btn{width:26px;height:26px;border-radius:6px;background:rgba(239,68,68,.08);color:var(--red);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.del-btn:hover{background:rgba(239,68,68,.18)}
+.empty-st{padding:20px;text-align:center;font-size:12px;color:var(--muted);font-weight:600}
+
+/* ── NOTIF ── */
+.notif-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(21,70,212,.06);font-size:12px}
+.notif-row:last-child{border-bottom:none}
+.notif-ico{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.notif-ico.full{background:rgba(239,68,68,.1)}.notif-ico.sent{background:var(--blue-20)}
+.nb{flex:1}.nb-t{font-weight:700;color:var(--night)}.nb-s{color:var(--muted);font-size:11px}
+.notif-time{font-size:10px;color:var(--muted);white-space:nowrap;padding-top:2px;font-weight:600}
+
+/* ── USER FUNNEL ── */
+.auth-wrap-light{min-height:calc(100vh - 120px);display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card-sm{background:var(--white);border-radius:22px;padding:34px 26px 26px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(21,70,212,.1)}
+.stepper{display:flex;align-items:center;justify-content:center;margin-bottom:28px}
+.step-item{display:flex;align-items:center}
+.sc{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:var(--timber);color:var(--muted);transition:all .3s;flex-shrink:0}
+.sc.active{background:var(--blue);color:white}.sc.done{background:var(--blue);color:white}
+.sl{width:36px;height:2px;background:var(--timber);transition:background .3s}.sl.done{background:var(--blue)}
+.fscr{display:none}.fscr.active{display:block}
+.scr-ico{width:56px;height:56px;border-radius:50%;background:var(--blue-20);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px}
+.scr-title{font-size:18px;font-weight:800;text-align:center;letter-spacing:-.3px;margin-bottom:6px;color:var(--night)}
+.scr-sub{font-size:13px;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:22px;font-weight:600}
+.summary-rows{margin-bottom:20px}
+.summ-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(21,70,212,.07);font-size:13px}
+.summ-row:last-child{border-bottom:none}
+.summ-key{color:var(--muted);font-size:12px;font-weight:700}.summ-val{font-weight:800;color:var(--night)}
+.plate-pill{background:var(--light);border:1px solid var(--timber);border-radius:5px;padding:2px 10px;font-size:12px;font-weight:800;letter-spacing:.1em}
+.welcome-wrap{text-align:center;padding:8px 0}
+.wel-av{width:72px;height:72px;border-radius:50%;background:var(--blue-20);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:var(--blue);margin:0 auto 16px}
+.wel-title{font-size:20px;font-weight:800;letter-spacing:-.4px;margin-bottom:6px;color:var(--night)}
+.wel-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px;font-weight:600}
+.wel-det{background:var(--light);border-radius:12px;padding:14px 16px;margin-bottom:22px;text-align:left;border:1px solid var(--border)}
+.wd-row{display:flex;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid rgba(21,70,212,.07)}
+.wd-row:last-child{border-bottom:none}
+.wd-k{color:var(--muted);font-weight:700}.wd-v{font-weight:800;color:var(--night)}
+
+/* ── USER DASH ── */
+.user-bar{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid rgba(21,70,212,.08)}
+.u-av{width:40px;height:40px;border-radius:50%;background:var(--blue-20);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--blue);flex-shrink:0}
+.u-name{font-size:14px;font-weight:800;color:var(--night)}
+.u-plate{display:inline-flex;margin-top:3px;background:var(--light);border:1px solid var(--timber);border-radius:4px;padding:1px 8px;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--night)}
+.status-row{display:flex;align-items:center;justify-content:center;margin-bottom:18px}
+.chip{font-size:11px;font-weight:800;padding:5px 14px;border-radius:20px;display:flex;align-items:center;gap:6px;letter-spacing:.02em}
+.chip-free{background:var(--blue-20);color:var(--blue)}
+.chip-parked{background:rgba(48,197,255,.12);color:#0369a1}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{padding:14px;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;border:none;transition:all .18s;letter-spacing:-.1px}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-enter{background:var(--blue);color:white}
+.btn-enter:hover:not(:disabled){background:#1238b8}
+.btn-exit{background:var(--white);color:var(--night);border:1.5px solid var(--border)}
+.btn-exit:hover:not(:disabled){background:var(--light)}
+.btn svg{width:16px;height:16px}
+.alert{display:none;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius-sm);font-size:12px;line-height:1.6;margin-bottom:16px;font-weight:600}
+.alert.show{display:flex}
+.alert-warn{background:#fffbeb;border:1px solid rgba(245,158,11,.3);color:#92400e}
+.alert-full{background:#fef2f2;border:1px solid rgba(239,68,68,.3);color:#991b1b}
+.logout-row{text-align:center;margin-top:10px}
+.logout-btn{background:none;border:none;font-family:var(--font);font-size:12px;color:var(--muted);cursor:pointer;font-weight:600}
+.logout-btn:hover{color:var(--red)}
+
+/* ── MODAL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(21,70,212,.45);z-index:300;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.overlay.open{display:flex}
+.modal{background:var(--white);border-radius:20px;padding:28px 24px 20px;width:100%;max-width:320px;text-align:center;animation:popIn .2s cubic-bezier(.34,1.56,.64,1);box-shadow:0 20px 60px rgba(21,70,212,.2)}
+@keyframes popIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+.modal-ico{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:24px}
+.modal-ico.enter{background:var(--blue-20)}.modal-ico.exit{background:rgba(21,70,212,.06)}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:6px;color:var(--night)}
+.modal-body{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:20px;font-weight:600}
+.modal-body strong{color:var(--night);font-weight:800}
+.modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mbtn{padding:12px;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;border:none;transition:all .15s}
+.mbtn-cancel{background:var(--light);color:var(--muted);border:1px solid var(--border)}
+.mbtn-enter{background:var(--blue);color:white}
+.mbtn-exit{background:var(--night);color:white}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--night);color:white;font-size:13px;font-weight:700;padding:11px 22px;border-radius:30px;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.blue{background:var(--blue)}
+.toast.sky{background:var(--sky);color:var(--night)}
+
+.footer-bar{text-align:center;padding:8px 20px 24px;font-size:10px;color:var(--muted);font-weight:700;letter-spacing:.04em}
+
+/* ── FM FIRST LOGIN ── */
+#fm-firstlogin{display:none}
+</style>
+</head>
+<body>
+
+<!-- ════════ LANDING ════════ -->
+<div class="view active" id="view-landing">
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <svg class="auth-logo-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 182.45 190.75">
+          <defs><radialGradient id="lg1" cx="92.52" cy="174.84" fx="92.52" fy="261.24" r="173.87" gradientTransform="translate(3.39 -31.07) scale(.97 .66)" gradientUnits="userSpaceOnUse"><stop offset=".19" stop-color="#1546d4"/><stop offset=".34" stop-color="#1548d5"/><stop offset=".45" stop-color="#1752d8"/><stop offset=".55" stop-color="#1b62dd"/><stop offset=".64" stop-color="#1f78e5"/><stop offset=".72" stop-color="#2696ef"/><stop offset=".81" stop-color="#2db9fb"/><stop offset=".83" stop-color="#30c5ff"/></radialGradient></defs>
+          <path fill="#1546d4" d="m65.4,79.47c-3.55,0-6.43,2.89-6.43,6.43s2.89,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-2,0-3.6-1.6-3.6-3.6s1.6-3.57,3.6-3.57,3.6,1.6,3.6,3.57-1.62,3.6-3.6,3.6Z"/>
+          <path fill="#1546d4" d="m122.05,65.08l-1.37-8.53c-.61-3.7-3.22-6.74-6.79-7.88-5.95-1.9-13.85-2.66-21.17-2.66s-15.25.76-21.17,2.66c-3.57,1.14-6.18,4.18-6.79,7.88l-1.39,8.53c-.63,3.87,2.94,7.12,6.74,6.13,7.52-1.95,15.4-2.56,22.61-2.56s15.07.61,22.61,2.56c3.8.99,7.34-2.25,6.71-6.13Z"/>
+          <path fill="#1546d4" d="m120.05,79.47c-3.57,0-6.43,2.89-6.43,6.43s2.86,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-1.98,0-3.6-1.6-3.6-3.6s1.62-3.57,3.6-3.57,3.57,1.6,3.57,3.57-1.6,3.6-3.57,3.6Z"/>
+          <path fill="url(#lg1)" d="m148.18,42.37c-.53,0-1.04.03-1.54.05-2.43-10.08-7.62-19.07-14.71-26.16C121.9,6.2,108.02,0,92.72,0s-29.2,6.2-39.23,16.26c-7.09,7.09-12.03,16.18-14.46,26.26-2.66-.17-6.72-.12-11.41,1.23-2.2.63-8.66,2.74-14.59,8.68-6.2,6.2-10.03,14.76-10.03,24.24s3.82,18.03,10.03,24.24c6.2,6.18,14.76,10.03,24.24,10.03h10.81c4.46,0,8.08-3.62,8.08-8.1,0-1.11-.23-2.2-.66-3.17-.1-.3-.25-.56-.41-.84-.08-.15-.15-.33-.23-.48l-2.23-5.17c-.15-.35-.28-.71-.41-1.09-.79-2.3.35-4.86,2.56-5.85h.05v-.35c0-3.49,1.44-6.64,3.77-8.86l.53-3.39-2.51-.71c-.58,1.01-1.65,1.67-2.89,1.67-1.85,0-3.34-1.49-3.34-3.32s1.49-3.32,3.34-3.32,3.32,1.49,3.32,3.32c0,.23-.03.48-.08.68l2.3.66,2.43-15.78c.94-6.81,6.69-11.29,12.38-12.43,5.75-1.14,12.13-2.03,18.61-2.03s12.86.89,18.61,2.03c5.7,1.14,11.42,5.62,12.38,12.43l2.43,15.78,2.28-.66c-.03-.2-.05-.46-.05-.68,0-1.82,1.47-3.32,3.32-3.32s3.32,1.49,3.32,3.32-1.49,3.32-3.32,3.32c-1.24,0-2.33-.66-2.89-1.67l-2.51.71.53,3.39c2.33,2.23,3.77,5.37,3.77,8.86v.35h.03c2.23.99,3.34,3.55,2.58,5.85-.13.38-.25.73-.43,1.09l-2.2,5.17c-.08.15-.15.3-.23.43-.15.3-.3.61-.43.91-.43.96-.66,2.03-.66,3.14,0,4.48,3.62,8.1,8.1,8.1h10.81c9.45,0,18.03-3.85,24.24-10.03,6.2-6.2,10.03-14.79,10.03-24.24,0-18.94-15.35-34.29-34.26-34.29Z"/>
+          <path fill="#0f0f0f" d="m8.36,128.98l-.05,2.87h.1c.94-1.1,2.02-1.95,3.24-2.56,1.22-.61,2.6-.91,4.13-.91,1.72,0,3.26.33,4.63.99,1.36.66,2.52,1.55,3.46,2.68.94,1.13,1.66,2.44,2.16,3.95.5,1.51.75,3.1.75,4.79s-.26,3.23-.77,4.72-1.25,2.79-2.21,3.92-2.11,2.03-3.47,2.7c-1.36.67-2.89,1.01-4.58,1.01c-1.5,0-2.87-.3-4.11-.91-1.24-.61-2.31-1.46-3.22-2.56h-.05c.06.91.09,1.69.09,2.35v11.84H0v-34.86h8.36Zm-.33,11.74c0,1.6.47,2.91,1.41,3.95.94,1.03,2.21,1.55,3.8,1.55s2.81-.52,3.71-1.55c.91-1.04,1.36-2.34,1.36-3.9s-.45-2.91-1.34-3.95c-.89-1.04-2.14-1.55-3.73-1.55s-2.86.51-3.8,1.53c-.94,1.02-1.41,2.33-1.41,3.92Z"/>
+          <path fill="#0f0f0f" d="m29.88,140.82c0-1.66.26-3.24.8-4.74.54-1.5,1.28-2.82,2.23-3.95.96-1.13,2.11-2.03,3.47-2.7,1.36-.67,2.89-1.01,4.58-1.01,1.47,0,2.81.25,4.02.75s2.32,1.35,3.36,2.53h.05l-.05-2.73h8.31v23.58h-8.31l.05-2.87h-.05c-1.13,1.13-2.27,1.99-3.43,2.58-1.16.6-2.49.89-3.99.89-1.69,0-3.22-.33-4.58-.99s-2.52-1.55-3.47-2.68-1.69-2.44-2.21-3.92-.77-3.08-.77-4.77Zm8.45-.05c0,1.6.45,2.91,1.34,3.95.89,1.03,2.14,1.55,3.73,1.55s2.87-.51,3.83-1.53,1.43-2.32,1.43-3.92-.48-2.91-1.43-3.95c-.96-1.04-2.22-1.55-3.78-1.55s-2.81.52-3.73,1.55c-.93,1.03-1.39,2.33-1.39,3.9Z"/>
+          <path fill="#0f0f0f" d="m62.29,128.98h8.46l-.14,2.63h.19c.91-1.19,1.83-2.03,2.75-2.52.93-.49,2.11-.73,3.55-.73.81,0,1.69.25,2.63.75l-1.22,8.27c-.54-.34-1.07-.63-1.62-.84-.55-.22-1.15-.33-1.81-.33-2.88,0-4.32,1.9-4.32,5.68v10.66h-8.46v-23.58Z"/>
+          <path fill="#0f0f0f" d="m82.72,152.56v-38.33h8.46v23.25l6.58-8.51h9.96l-9.44,10.71,10.05,12.87h-10.1l-6.2-9.4-.84.52v8.88h-8.46Z"/>
+          <path fill="#0f0f0f" d="m110.35,119.91c0-1.32.47-2.4,1.41-3.24.94-.84,2.09-1.27,3.47-1.27s2.59.42,3.55,1.25c.95.83,1.43,1.92,1.43,3.26,0,1.47-.49,2.6-1.48,3.38-.99.78-2.14,1.17-3.45,1.17s-2.5-.39-3.47-1.17c-.97-.78-1.46-1.91-1.46-3.38Zm9.16,9.06v23.58h-8.46v-23.58h8.46Z"/>
+          <path fill="#0f0f0f" d="m125.19,152.56v-23.58h8.31l-.14,3.15h.1c.97-1.16,2.01-2.08,3.12-2.75s2.53-1.01,4.25-1.01c1.41,0,2.63.24,3.67.73,1.03.49,1.88,1.15,2.56,2,.67.85,1.17,1.87,1.48,3.05.31,1.19.47,2.49.47,3.9v14.52h-8.46v-12.36c0-1.56-.23-2.75-.68-3.54-.45-.8-1.28-1.2-2.47-1.2-2.5,0-3.76,1.85-3.76,5.54v11.56h-8.46Z"/>
+          <path fill="#0f0f0f" d="m163.9,128.41c1.47,0,2.79.25,3.95.75s2.24,1.35,3.24,2.53h.09l-.09-2.73h8.36v21.94c0,2.22-.31,4.16-.94,5.8-.63,1.65-1.51,3.02-2.65,4.11-1.14,1.09-2.52,1.92-4.13,2.47-1.61.55-3.42.82-5.43.82-1.79,0-3.42-.19-4.91-.59-1.49-.39-2.78-.97-3.87-1.74-1.1-.77-1.98-1.75-2.63-2.94-.66-1.19-1.06-2.58-1.22-4.18l7.37-.23c.28,1.22.82,2.14,1.62,2.74.8.61,1.95.92,3.45.92,1.66,0,2.94-.51,3.85-1.53.91-1.02,1.36-2.56,1.36-4.63v-3.05h-.09c-1.04,1.16-2.13,2.05-3.29,2.68-1.16.63-2.54.94-4.14.94s-2.99-.32-4.27-.96-2.38-1.51-3.29-2.61c-.91-1.1-1.61-2.37-2.11-3.83s-.75-3-.75-4.63.25-3.17.75-4.63,1.21-2.74,2.14-3.85c.92-1.11,2.03-1.99,3.31-2.63s2.73-.96,4.32-.96Zm-2.07,12.21c0,1.6.42,2.9,1.25,3.9s2,1.5,3.5,1.5,2.61-.5,3.5-1.5c.89-1,1.34-2.29,1.34-3.85s-.45-2.81-1.34-3.83c-.89-1.02-2.05-1.53-3.46-1.53s-2.6.51-3.47,1.53-1.32,2.28-1.32,3.78Z"/>
+          <path fill="#1546d4" d="m12.33,175.69c0-2.11.39-4.11,1.19-5.99s1.89-3.52,3.27-4.93c1.38-1.41,3.02-2.53,4.93-3.35s3.95-1.23,6.14-1.23c2.53,0,5.01.59,7.43,1.76l.16,8.06c-2.32-2.06-4.72-3.09-7.2-3.09-1.1,0-2.15.21-3.17.63-1.02.42-1.92,1.01-2.7,1.78-.78.77-1.41,1.68-1.88,2.74-.47,1.06-.7,2.21-.7,3.46s.22,2.31.67,3.34c.44,1.03,1.05,1.93,1.82,2.7.77.77,1.67,1.38,2.72,1.82,1.04.44,2.15.66,3.32.66,1.41,0,2.66-.24,3.74-.72,1.08-.48,2.21-1.26,3.38-2.33l-.16,8.02c-1.1.6-2.37,1.04-3.81,1.31-1.45.27-2.79.41-4.01.41-2.14,0-4.13-.39-5.97-1.17-1.84-.78-3.44-1.85-4.79-3.21-1.36-1.35-2.43-2.95-3.21-4.77-.78-1.82-1.17-3.8-1.17-5.91Z"/>
+          <path fill="#1546d4" d="m40.23,190.24v-29.5h7.24v22.81h8.8v6.69h-16.04Z"/>
+          <path fill="#1546d4" d="m57.72,175.45c0-2.19.42-4.21,1.25-6.07.83-1.85,1.97-3.45,3.42-4.81s3.14-2.42,5.07-3.19c1.93-.77,3.98-1.16,6.15-1.16s4.21.39,6.12,1.16c1.92.77,3.59,1.83,5.03,3.19,1.43,1.36,2.57,2.97,3.4,4.83.83,1.86,1.25,3.91,1.25,6.12s-.42,4.3-1.25,6.16c-.84,1.87-1.98,3.47-3.42,4.81-1.45,1.35-3.14,2.39-5.07,3.13-1.93.74-3.99,1.11-6.18,1.11s-4.13-.37-6.05-1.1c-1.92-.73-3.59-1.77-5.03-3.11-1.43-1.34-2.58-2.95-3.42-4.83s-1.27-3.96-1.27-6.26Zm7.47.04c0,1.25.22,2.41.67,3.46.44,1.06,1.05,1.96,1.82,2.72s1.66,1.34,2.66,1.76c1,.42,2.07.62,3.19.62,1.2,0,2.31-.21,3.35-.64,1.03-.43,1.92-1.03,2.68-1.78s1.35-1.66,1.78-2.7c.43-1.04.65-2.18.65-3.4s-.21-2.36-.65-3.4c-.43-1.04-1.02-1.95-1.76-2.72-.75-.77-1.63-1.38-2.66-1.82-1.03-.44-2.15-.67-3.35-.67s-2.28.22-3.31.67c-1.03.45-1.92,1.05-2.66,1.82-.74.77-1.33,1.67-1.76,2.72-.43,1.04-.64,2.17-.64,3.36Z"/>
+          <path fill="#1546d4" d="m93.63,160.74h7.43v17.49c0,3.99,1.59,5.99,4.77,5.99s4.81-2.02,4.81-6.07v-17.41h7.4v18.27c0,1.96-.31,3.66-.92,5.13s-1.46,2.68-2.54,3.66-2.37,1.72-3.85,2.21c-1.49.5-3.12.75-4.89.75s-3.37-.25-4.85-.75c-1.49-.49-2.78-1.23-3.87-2.21s-1.95-2.2-2.56-3.66c-.61-1.46-.92-3.17-.92-5.13v-18.27Z"/>
+          <path fill="#1546d4" d="m123.29,190.24v-29.5h8.45c2.51,0,4.8.31,6.89.94,2.09.62,3.88,1.56,5.36,2.81,1.48,1.25,2.65,2.81,3.48,4.68s1.25,4.04,1.25,6.51c0,2.3-.38,4.34-1.13,6.14s-1.83,3.33-3.23,4.58-3.06,2.2-4.99,2.86c-1.93.65-4.07.98-6.42.98h-9.66Zm8.77-6.38c1.38,0,2.65-.18,3.8-.53,1.15-.35,2.12-.87,2.93-1.54s1.44-1.53,1.88-2.54c.44-1.02.67-2.2.67-3.56,0-2.69-.78-4.75-2.33-6.2-1.55-1.45-3.87-2.17-6.94-2.17h-1.53v16.55h1.53Z"/>
+        </svg>
+      </div>
+      <div class="auth-title">Retelit Spa · Parcheggio Aziendale</div>
+      <div class="auth-sub">Seleziona il tuo profilo per continuare</div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="selRole('user')">👤<br>Dipendente</button>
+        <button class="auth-tab" onclick="selRole('fm')">🏢<br>Facility Mgr</button>
+        <button class="auth-tab" onclick="selRole('super')">⚡<br>Parking Cloud</button>
+      </div>
+
+      <div id="role-user">
+        <div class="field">
+          <div class="field-label">Email aziendale</div>
+          <input class="fi" id="l-email" type="email" placeholder="mario.rossi@retelit.it" onkeydown="if(event.key==='Enter')landingGo()">
+          <div class="field-err" id="l-err"></div>
+        </div>
+        <div class="blocked" id="l-blocked">⛔ Email non abilitata. Contatta il tuo <strong>facility manager</strong> per richiedere l'accesso.</div>
+        <button class="btn-primary" onclick="landingGo()">Continua →</button>
+      </div>
+
+      <div id="role-fm" style="display:none">
+        <div class="field">
+          <div class="field-label">Email</div>
+          <input class="fi" id="fm-email" type="email" placeholder="facility@retelit.it" onkeydown="if(event.key==='Enter')document.getElementById('fm-pass').focus()">
+        </div>
+        <div id="fm-pass-wrap">
+          <div class="field">
+            <div class="field-label">Password</div>
+            <input class="fi" id="fm-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin('fm')">
+            <div class="field-err" id="fm-err">Credenziali non valide</div>
+          </div>
+          <button class="btn-primary" onclick="adminLogin('fm')">Accedi →</button>
+        </div>
+        <div id="fm-firstlogin">
+          <div class="field">
+            <div class="field-label">Nuova password</div>
+            <input class="fi" id="fm-pw1" type="password" placeholder="Scegli una password" oninput="pwStrength('fm-pw1','fm-pwbar','fm-pwbartxt')">
+            <div class="pw-strength"><div class="pw-bar" id="fm-pwbar"></div></div>
+            <div class="pw-hint" id="fm-pwbartxt">Min. 8 caratteri</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Conferma password</div>
+            <input class="fi" id="fm-pw2" type="password" placeholder="Ripeti la password" onkeydown="if(event.key==='Enter')setFmPw()">
+            <div class="field-err" id="fm-pw-err">Le password non coincidono</div>
+          </div>
+          <button class="btn-primary" onclick="setFmPw()">Imposta password e accedi →</button>
+        </div>
+      </div>
+
+      <div id="role-super" style="display:none">
+        <div class="field">
+          <div class="field-label">Email</div>
+          <input class="fi" id="su-email" type="email" placeholder="admin@parkingcloud.eu" onkeydown="if(event.key==='Enter')document.getElementById('su-pass').focus()">
+        </div>
+        <div class="field">
+          <div class="field-label">Password</div>
+          <input class="fi" id="su-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin('super')">
+          <div class="field-err" id="su-err">Credenziali non valide</div>
+        </div>
+        <button class="btn-primary" onclick="adminLogin('super')">Accedi →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ UTENTE ════════ -->
+<div class="view" id="view-user">
+  <div class="navbar">
+    <div class="nav-logo">
+      <svg class="nav-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182.45 111">
+        <path fill="white" d="m65.4,79.47c-3.55,0-6.43,2.89-6.43,6.43s2.89,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-2,0-3.6-1.6-3.6-3.6s1.6-3.57,3.6-3.57,3.6,1.6,3.6,3.57-1.62,3.6-3.6,3.6Z"/>
+        <path fill="white" d="m122.05,65.08l-1.37-8.53c-.61-3.7-3.22-6.74-6.79-7.88-5.95-1.9-13.85-2.66-21.17-2.66s-15.25.76-21.17,2.66c-3.57,1.14-6.18,4.18-6.79,7.88l-1.39,8.53c-.63,3.87,2.94,7.12,6.74,6.13,7.52-1.95,15.4-2.56,22.61-2.56s15.07.61,22.61,2.56c3.8.99,7.34-2.25,6.71-6.13Z"/>
+        <path fill="white" d="m120.05,79.47c-3.57,0-6.43,2.89-6.43,6.43s2.86,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-1.98,0-3.6-1.6-3.6-3.6s1.62-3.57,3.6-3.57,3.57,1.6,3.57,3.57-1.6,3.6-3.57,3.6Z"/>
+        <path fill="rgba(255,255,255,0.85)" d="m148.18,42.37c-.53,0-1.04.03-1.54.05-2.43-10.08-7.62-19.07-14.71-26.16C121.9,6.2,108.02,0,92.72,0s-29.2,6.2-39.23,16.26c-7.09,7.09-12.03,16.18-14.46,26.26-2.66-.17-6.72-.12-11.41,1.23-2.2.63-8.66,2.74-14.59,8.68-6.2,6.2-10.03,14.76-10.03,24.24s3.82,18.03,10.03,24.24c6.2,6.18,14.76,10.03,24.24,10.03h10.81c4.46,0,8.08-3.62,8.08-8.1,0-1.11-.23-2.2-.66-3.17-.1-.3-.25-.56-.41-.84-.08-.15-.15-.33-.23-.48l-2.23-5.17c-.15-.35-.28-.71-.41-1.09-.79-2.3.35-4.86,2.56-5.85h.05v-.35c0-3.49,1.44-6.64,3.77-8.86l.53-3.39-2.51-.71c-.58,1.01-1.65,1.67-2.89,1.67-1.85,0-3.34-1.49-3.34-3.32s1.49-3.32,3.34-3.32,3.32,1.49,3.32,3.32c0,.23-.03.48-.08.68l2.3.66,2.43-15.78c.94-6.81,6.69-11.29,12.38-12.43,5.75-1.14,12.13-2.03,18.61-2.03s12.86.89,18.61,2.03c5.7,1.14,11.42,5.62,12.38,12.43l2.43,15.78,2.28-.66c-.03-.2-.05-.46-.05-.68,0-1.82,1.47-3.32,3.32-3.32s3.32,1.49,3.32,3.32-1.49,3.32-3.32,3.32c-1.24,0-2.33-.66-2.89-1.67l-2.51.71.53,3.39c2.33,2.23,3.77,5.37,3.77,8.86v.35h.03c2.23.99,3.34,3.55,2.58,5.85-.13.38-.25.73-.43,1.09l-2.2,5.17c-.08.15-.15.3-.23.43-.15.3-.3.61-.43.91-.43.96-.66,2.03-.66,3.14,0,4.48,3.62,8.1,8.1,8.1h10.81c9.45,0,18.03-3.85,24.24-10.03,6.2-6.2,10.03-14.79,10.03-24.24,0-18.94-15.35-34.29-34.26-34.29Z"/>
+      </svg>
+    </div>
+    <div class="nav-r">
+      <div class="nav-pill">Retelit Spa</div>
+      <div class="nav-clock"><div class="pulse-dot"></div><span id="u-clock">--:--</span></div>
+    </div>
+  </div>
+
+  <div id="u-funnel">
+    <div class="auth-wrap-light">
+      <div class="auth-card-sm">
+        <div class="stepper">
+          <div class="step-item"><div class="sc active" id="sc0"><span>1</span></div></div>
+          <div class="sl" id="sl0"></div>
+          <div class="step-item"><div class="sc" id="sc1"><span>2</span></div></div>
+          <div class="sl" id="sl1"></div>
+          <div class="step-item"><div class="sc" id="sc2"><span>3</span></div></div>
+          <div class="sl" id="sl2"></div>
+          <div class="step-item"><div class="sc" id="sc3"><span>4</span></div></div>
+        </div>
+
+        <div class="fscr active" id="fs0">
+          <div class="scr-ico">✏️</div>
+          <div class="scr-title">Completa il profilo</div>
+          <div class="scr-sub">Prima registrazione — inserisci i tuoi dati</div>
+          <div class="f2">
+            <div class="field"><div class="field-label">Nome</div><input class="fi" id="f-nome" type="text" placeholder="Mario"></div>
+            <div class="field"><div class="field-label">Cognome</div><input class="fi" id="f-cognome" type="text" placeholder="Rossi"></div>
+          </div>
+          <div class="field">
+            <div class="field-label">Targa</div>
+            <input class="fi plate" id="f-targa" type="text" placeholder="AB 123 CD" maxlength="10">
+            <div class="field-err" id="f-targa-err">Inserisci una targa valida (min. 5 caratteri)</div>
+          </div>
+          <div class="info-box">La targa viene usata per verifiche in loco dal facility manager.</div>
+          <button class="btn-primary" onclick="fNext1()">Continua →</button>
+          <button class="btn-secondary" onclick="goView('view-landing')">← Indietro</button>
+        </div>
+
+        <div class="fscr" id="fs1">
+          <div class="scr-ico">✅</div>
+          <div class="scr-title">Conferma i dati</div>
+          <div class="scr-sub">Controlla prima di completare la registrazione</div>
+          <div class="summary-rows" id="f-summ"></div>
+          <button class="btn-primary" onclick="fNext2()">Completa registrazione</button>
+          <button class="btn-secondary" onclick="fGoStep(0)">← Modifica</button>
+        </div>
+
+        <div class="fscr" id="fs2">
+          <div class="welcome-wrap">
+            <div class="wel-av" id="w-ini">?</div>
+            <div class="wel-title" id="w-name">Benvenuto!</div>
+            <div class="wel-sub">Account attivo. Puoi usare il parcheggio Retelit.</div>
+            <div class="wel-det">
+              <div class="wd-row"><span class="wd-k">Email</span><span class="wd-v" id="w-email">—</span></div>
+              <div class="wd-row"><span class="wd-k">Targa</span><span class="wd-v" id="w-targa">—</span></div>
+              <div class="wd-row"><span class="wd-k">Stato</span><span class="wd-v" style="color:var(--blue)">✓ Attivo</span></div>
+            </div>
+            <button class="btn-primary" onclick="goUserDash()">Vai al parcheggio →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="u-dash" style="display:none">
+    <div class="hero">
+      <div class="hero-ey">Disponibilità in tempo reale</div>
+      <div class="hero-nw"><div class="hero-n" id="u-free">15</div><div class="hero-den">/15</div></div>
+      <div class="hero-lbl"><strong id="u-occ">0 posti occupati</strong> · sessione odierna</div>
+      <div class="prog-track"><div class="prog-fill" id="u-prog" style="width:100%"></div></div>
+    </div>
+    <div class="auth-wrap-light" style="min-height:auto;padding-top:0">
+      <div style="width:100%;max-width:480px;padding:20px 0 28px">
+        <div class="alert" id="u-alert"><div id="u-al-ico"></div><div id="u-al-msg"></div></div>
+        <div class="card" style="margin-bottom:0">
+          <div class="user-bar">
+            <div class="u-av" id="ud-ini">?</div>
+            <div><div class="u-name" id="ud-name">—</div><div class="u-plate" id="ud-plate">—</div></div>
+          </div>
+          <div class="status-row">
+            <div class="chip chip-free" id="u-chip"><div class="chip-dot"></div><span id="u-chip-txt">Non parcheggiato</span></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-enter" id="u-btn-in" onclick="askEnter()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              Sono entrato
+            </button>
+            <button class="btn btn-exit" id="u-btn-out" onclick="askExit()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Sono uscito
+            </button>
+          </div>
+        </div>
+        <div class="logout-row"><button class="logout-btn" onclick="userLogout()">Esci dall'account</button></div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bar">Parking Cloud · Retelit Spa · Sessione privata</div>
+</div>
+
+<!-- ════════ FACILITY MANAGER ════════ -->
+<div class="view" id="view-fm">
+  <div class="navbar">
+    <div class="nav-logo">
+      <svg class="nav-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182.45 111">
+        <path fill="white" d="m65.4,79.47c-3.55,0-6.43,2.89-6.43,6.43s2.89,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-2,0-3.6-1.6-3.6-3.6s1.6-3.57,3.6-3.57,3.6,1.6,3.6,3.57-1.62,3.6-3.6,3.6Z"/>
+        <path fill="white" d="m122.05,65.08l-1.37-8.53c-.61-3.7-3.22-6.74-6.79-7.88-5.95-1.9-13.85-2.66-21.17-2.66s-15.25.76-21.17,2.66c-3.57,1.14-6.18,4.18-6.79,7.88l-1.39,8.53c-.63,3.87,2.94,7.12,6.74,6.13,7.52-1.95,15.4-2.56,22.61-2.56s15.07.61,22.61,2.56c3.8.99,7.34-2.25,6.71-6.13Z"/>
+        <path fill="white" d="m120.05,79.47c-3.57,0-6.43,2.89-6.43,6.43s2.86,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-1.98,0-3.6-1.6-3.6-3.6s1.62-3.57,3.6-3.57,3.57,1.6,3.57,3.57-1.6,3.6-3.57,3.6Z"/>
+        <path fill="rgba(255,255,255,0.85)" d="m148.18,42.37c-.53,0-1.04.03-1.54.05-2.43-10.08-7.62-19.07-14.71-26.16C121.9,6.2,108.02,0,92.72,0s-29.2,6.2-39.23,16.26c-7.09,7.09-12.03,16.18-14.46,26.26-2.66-.17-6.72-.12-11.41,1.23-2.2.63-8.66,2.74-14.59,8.68-6.2,6.2-10.03,14.76-10.03,24.24s3.82,18.03,10.03,24.24c6.2,6.18,14.76,10.03,24.24,10.03h10.81c4.46,0,8.08-3.62,8.08-8.1,0-1.11-.23-2.2-.66-3.17-.1-.3-.25-.56-.41-.84-.08-.15-.15-.33-.23-.48l-2.23-5.17c-.15-.35-.28-.71-.41-1.09-.79-2.3.35-4.86,2.56-5.85h.05v-.35c0-3.49,1.44-6.64,3.77-8.86l.53-3.39-2.51-.71c-.58,1.01-1.65,1.67-2.89,1.67-1.85,0-3.34-1.49-3.34-3.32s1.49-3.32,3.34-3.32,3.32,1.49,3.32,3.32c0,.23-.03.48-.08.68l2.3.66,2.43-15.78c.94-6.81,6.69-11.29,12.38-12.43,5.75-1.14,12.13-2.03,18.61-2.03s12.86.89,18.61,2.03c5.7,1.14,11.42,5.62,12.38,12.43l2.43,15.78,2.28-.66c-.03-.2-.05-.46-.05-.68,0-1.82,1.47-3.32,3.32-3.32s3.32,1.49,3.32,3.32-1.49,3.32-3.32,3.32c-1.24,0-2.33-.66-2.89-1.67l-2.51.71.53,3.39c2.33,2.23,3.77,5.37,3.77,8.86v.35h.03c2.23.99,3.34,3.55,2.58,5.85-.13.38-.25.73-.43,1.09l-2.2,5.17c-.08.15-.15.3-.23.43-.15.3-.3.61-.43.91-.43.96-.66,2.03-.66,3.14,0,4.48,3.62,8.1,8.1,8.1h10.81c9.45,0,18.03-3.85,24.24-10.03,6.2-6.2,10.03-14.79,10.03-24.24,0-18.94-15.35-34.29-34.26-34.29Z"/>
+      </svg>
+    </div>
+    <div class="nav-r">
+      <div class="nav-pill" id="fm-nav-name">Facility Manager</div>
+      <div class="nav-role role-fm">FM</div>
+      <div class="nav-clock"><div class="pulse-dot"></div><span id="fm-clock">--:--</span></div>
+      <button class="nav-out" onclick="adminLogout()">Esci</button>
+    </div>
+  </div>
+  <div class="hero">
+    <div class="hero-ey">Parcheggio Retelit Spa · Live</div>
+    <div class="hero-nw"><div class="hero-n" id="fm-free">15</div><div class="hero-den">/15</div></div>
+    <div class="hero-lbl"><strong id="fm-occ">0 posti occupati</strong></div>
+    <div class="prog-track"><div class="prog-fill" id="fm-prog" style="width:100%"></div></div>
+  </div>
+  <div class="page-content">
+    <div class="sec-label" style="margin-top:4px">Panoramica</div>
+    <div class="stats-g">
+      <div class="stat-c"><div class="stat-n blue" id="fm-s-free">15</div><div class="stat-l">Posti liberi</div></div>
+      <div class="stat-c"><div class="stat-n amber" id="fm-s-occ">0</div><div class="stat-l">Occupati</div></div>
+      <div class="stat-c"><div class="stat-n sky" id="fm-s-users">0</div><div class="stat-l">Utenti attivi</div></div>
+    </div>
+
+
+
+    <div class="sec-label">Utenti abilitati</div>
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">Whitelist <span id="fm-ucount" style="color:var(--muted);font-weight:600;font-size:12px"></span></div>
+        <button class="add-btn" onclick="togForm('fm-af')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Aggiungi
+        </button>
+      </div>
+      <div class="add-form" id="fm-af">
+        <div class="af-grid">
+          <div><div class="field-label">Nome</div><input class="fi" id="fm-u-nome" type="text" placeholder="Mario"></div>
+          <div><div class="field-label">Cognome</div><input class="fi" id="fm-u-cognome" type="text" placeholder="Rossi"></div>
+        </div>
+        <div class="af-grid">
+          <div><div class="field-label">Email</div><input class="fi" id="fm-u-email" type="email" placeholder="mario@retelit.it"></div>
+          <div><div class="field-label">Targa (opz.)</div><input class="fi plate" id="fm-u-targa" type="text" placeholder="AB123CD" maxlength="10"></div>
+        </div>
+        <div class="fbtn-row">
+          <button class="fbtn fbtn-cancel" onclick="togForm('fm-af')">Annulla</button>
+          <button class="fbtn fbtn-add" onclick="addUser('fm')">Aggiungi</button>
+        </div>
+      </div>
+      <div id="fm-ulist"></div>
+    </div>
+
+
+  </div>
+  <div class="footer-bar">Parking Cloud · Pannello Facility Manager · Retelit Spa</div>
+</div>
+
+<!-- ════════ SUPER ADMIN ════════ -->
+<div class="view" id="view-super">
+  <div class="navbar">
+    <div class="nav-logo">
+      <svg class="nav-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 182.45 111">
+        <path fill="white" d="m65.4,79.47c-3.55,0-6.43,2.89-6.43,6.43s2.89,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-2,0-3.6-1.6-3.6-3.6s1.6-3.57,3.6-3.57,3.6,1.6,3.6,3.57-1.62,3.6-3.6,3.6Z"/>
+        <path fill="white" d="m122.05,65.08l-1.37-8.53c-.61-3.7-3.22-6.74-6.79-7.88-5.95-1.9-13.85-2.66-21.17-2.66s-15.25.76-21.17,2.66c-3.57,1.14-6.18,4.18-6.79,7.88l-1.39,8.53c-.63,3.87,2.94,7.12,6.74,6.13,7.52-1.95,15.4-2.56,22.61-2.56s15.07.61,22.61,2.56c3.8.99,7.34-2.25,6.71-6.13Z"/>
+        <path fill="white" d="m120.05,79.47c-3.57,0-6.43,2.89-6.43,6.43s2.86,6.43,6.43,6.43,6.43-2.89,6.43-6.43-2.89-6.43-6.43-6.43Zm0,10.05c-1.98,0-3.6-1.6-3.6-3.6s1.62-3.57,3.6-3.57,3.57,1.6,3.57,3.57-1.6,3.6-3.57,3.6Z"/>
+        <path fill="rgba(255,255,255,0.85)" d="m148.18,42.37c-.53,0-1.04.03-1.54.05-2.43-10.08-7.62-19.07-14.71-26.16C121.9,6.2,108.02,0,92.72,0s-29.2,6.2-39.23,16.26c-7.09,7.09-12.03,16.18-14.46,26.26-2.66-.17-6.72-.12-11.41,1.23-2.2.63-8.66,2.74-14.59,8.68-6.2,6.2-10.03,14.76-10.03,24.24s3.82,18.03,10.03,24.24c6.2,6.18,14.76,10.03,24.24,10.03h10.81c4.46,0,8.08-3.62,8.08-8.1,0-1.11-.23-2.2-.66-3.17-.1-.3-.25-.56-.41-.84-.08-.15-.15-.33-.23-.48l-2.23-5.17c-.15-.35-.28-.71-.41-1.09-.79-2.3.35-4.86,2.56-5.85h.05v-.35c0-3.49,1.44-6.64,3.77-8.86l.53-3.39-2.51-.71c-.58,1.01-1.65,1.67-2.89,1.67-1.85,0-3.34-1.49-3.34-3.32s1.49-3.32,3.34-3.32,3.32,1.49,3.32,3.32c0,.23-.03.48-.08.68l2.3.66,2.43-15.78c.94-6.81,6.69-11.29,12.38-12.43,5.75-1.14,12.13-2.03,18.61-2.03s12.86.89,18.61,2.03c5.7,1.14,11.42,5.62,12.38,12.43l2.43,15.78,2.28-.66c-.03-.2-.05-.46-.05-.68,0-1.82,1.47-3.32,3.32-3.32s3.32,1.49,3.32,3.32-1.49,3.32-3.32,3.32c-1.24,0-2.33-.66-2.89-1.67l-2.51.71.53,3.39c2.33,2.23,3.77,5.37,3.77,8.86v.35h.03c2.23.99,3.34,3.55,2.58,5.85-.13.38-.25.73-.43,1.09l-2.2,5.17c-.08.15-.15.3-.23.43-.15.3-.3.61-.43.91-.43.96-.66,2.03-.66,3.14,0,4.48,3.62,8.1,8.1,8.1h10.81c9.45,0,18.03-3.85,24.24-10.03,6.2-6.2,10.03-14.79,10.03-24.24,0-18.94-15.35-34.29-34.26-34.29Z"/>
+      </svg>
+    </div>
+    <div class="nav-r">
+      <div class="nav-pill" id="su-nav-name">Super Admin</div>
+      <div class="nav-role role-super">ADMIN</div>
+      <div class="nav-clock"><div class="pulse-dot"></div><span id="su-clock">--:--</span></div>
+      <button class="nav-out" onclick="adminLogout()">Esci</button>
+    </div>
+  </div>
+  <div class="hero">
+    <div class="hero-ey">Controllo globale · Retelit Spa</div>
+    <div class="hero-nw"><div class="hero-n" id="su-free">15</div><div class="hero-den">/15</div></div>
+    <div class="hero-lbl"><strong id="su-occ">0 posti occupati</strong></div>
+    <div class="prog-track"><div class="prog-fill" id="su-prog" style="width:100%"></div></div>
+  </div>
+  <div class="page-content">
+    <div class="sec-label" style="margin-top:4px">Panoramica cliente</div>
+    <div class="stats-g">
+      <div class="stat-c"><div class="stat-n blue" id="su-s-free">15</div><div class="stat-l">Posti liberi</div></div>
+      <div class="stat-c"><div class="stat-n amber" id="su-s-occ">0</div><div class="stat-l">Occupati</div></div>
+      <div class="stat-c"><div class="stat-n sky" id="su-s-users">0</div><div class="stat-l">Utenti totali</div></div>
+    </div>
+
+    <div class="sec-label">Profili admin</div>
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">Facility Manager <span id="su-acount" style="color:var(--muted);font-weight:600;font-size:12px"></span></div>
+        <button class="add-btn" onclick="togForm('su-fm-af')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Crea FM
+        </button>
+      </div>
+      <div class="add-form" id="su-fm-af">
+        <div class="af-grid">
+          <div><div class="field-label">Nome</div><input class="fi" id="su-fm-nome" type="text" placeholder="Mario"></div>
+          <div><div class="field-label">Cognome</div><input class="fi" id="su-fm-cognome" type="text" placeholder="Rossi"></div>
+        </div>
+        <div class="af-grid">
+          <div><div class="field-label">Email</div><input class="fi" id="su-fm-email" type="email" placeholder="facility@retelit.it"></div>
+          <div><div class="field-label">Azienda cliente</div><input class="fi" id="su-fm-company" type="text" placeholder="Retelit Spa"></div>
+        </div>
+        <div class="fbtn-row">
+          <button class="fbtn fbtn-cancel" onclick="togForm('su-fm-af')">Annulla</button>
+          <button class="fbtn fbtn-add" onclick="createFm()">Crea account FM</button>
+        </div>
+      </div>
+      <div id="su-alist"></div>
+    </div>
+
+    <div class="sec-label">Utenti (whitelist Retelit)</div>
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">Whitelist <span id="su-ucount" style="color:var(--muted);font-weight:600;font-size:12px"></span></div>
+        <button class="add-btn" onclick="togForm('su-u-af')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Aggiungi
+        </button>
+      </div>
+      <div class="add-form" id="su-u-af">
+        <div class="af-grid">
+          <div><div class="field-label">Nome</div><input class="fi" id="su-u-nome" type="text" placeholder="Mario"></div>
+          <div><div class="field-label">Cognome</div><input class="fi" id="su-u-cognome" type="text" placeholder="Rossi"></div>
+        </div>
+        <div class="af-grid">
+          <div><div class="field-label">Email</div><input class="fi" id="su-u-email" type="email" placeholder="mario@retelit.it"></div>
+          <div><div class="field-label">Targa (opz.)</div><input class="fi plate" id="su-u-targa" type="text" placeholder="AB123CD" maxlength="10"></div>
+        </div>
+        <div class="fbtn-row">
+          <button class="fbtn fbtn-cancel" onclick="togForm('su-u-af')">Annulla</button>
+          <button class="fbtn fbtn-add" onclick="addUser('su')">Aggiungi</button>
+        </div>
+      </div>
+      <div id="su-ulist"></div>
+    </div>
+
+
+  </div>
+  <div class="footer-bar">Parking Cloud · Super Admin · © 2025 Parking Cloud Srl</div>
+</div>
+
+<!-- MODALI -->
+<div class="overlay" id="modal-enter">
+  <div class="modal">
+    <div class="modal-ico enter">🚗</div>
+    <div class="modal-title">Conferma ingresso</div>
+    <div class="modal-body">Stai per registrare il tuo ingresso.<br><strong>Un posto verrà segnato come occupato.</strong></div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modal-enter')">Annulla</button>
+      <button class="mbtn mbtn-enter" onclick="confirmEnter()">Confermo</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="modal-exit">
+  <div class="modal">
+    <div class="modal-ico exit">👋</div>
+    <div class="modal-title">Conferma uscita</div>
+    <div class="modal-body">Stai per registrare la tua uscita.<br><strong>Il posto tornerà disponibile</strong> per i colleghi.</div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('modal-exit')">Annulla</button>
+      <button class="mbtn mbtn-exit" onclick="confirmExit()">Confermo</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════
+   API — tutte le chiamate al backend Netlify
+   ═══════════════════════════════════════════ */
+const API = {
+  getState:    ()          => fetch('/.netlify/functions/get-state').then(r=>r.json()),
+  auth:        (body)      => fetch('/.netlify/functions/auth',          {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  updatePark:  (body)      => fetch('/.netlify/functions/update-parking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  register:    (body)      => fetch('/.netlify/functions/register',      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  getUsers:    ()          => fetch('/.netlify/functions/manage-users').then(r=>r.json()),
+  addUser:     (body)      => fetch('/.netlify/functions/manage-users',  {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  removeUser:  (email)     => fetch('/.netlify/functions/manage-users',  {method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}).then(r=>r.json()),
+  getAdmins:   ()          => fetch('/.netlify/functions/manage-admins').then(r=>r.json()),
+  addAdmin:    (body)      => fetch('/.netlify/functions/manage-admins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  removeAdmin: (email)     => fetch('/.netlify/functions/manage-admins', {method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}).then(r=>r.json()),
+};
+
+/* Sessione — rimane solo nel sessionStorage (tab corrente) */
+const getSession  = ()    => { try{return JSON.parse(sessionStorage.getItem('pc_session'))}catch(e){return null} };
+const setSession  = (v)   => sessionStorage.setItem('pc_session', JSON.stringify(v));
+const clearSession= ()    => sessionStorage.removeItem('pc_session');
+
+let users    = [];   /* popolato da loadState() */
+let parkOcc  = 0;
+const TOTAL  = 15;
+let admins   = [];   /* popolato da loadAdmins() */
+
+let session = getSession();
+let fStep=0, fData={};
+
+/* Carica stato iniziale dal DB */
+async function loadState(){
+  try{
+    const data = await API.getState();
+    users   = data.users  || [];
+    parkOcc = data.occupied || 0;
+    renderFmDash(); renderSuperDash(); renderUserDash();
+  }catch(e){ console.error('loadState error',e); }
+}
+
+async function loadAdmins(){
+  try{
+    const data = await API.getAdmins();
+    admins = data.admins || [];
+    renderAdminList();
+  }catch(e){ console.error('loadAdmins error',e); }
+}
+
+const pad2=n=>n.toString().padStart(2,'0');
+const nowStr=()=>{const d=new Date();return pad2(d.getHours())+':'+pad2(d.getMinutes())};
+const isEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const findUser =email=>users.find(u=>u.email.toLowerCase()===email.toLowerCase());
+const findAdmin=email=>admins.find(a=>a.email.toLowerCase()===email.toLowerCase());
+const ini=u=>((u.nome||u.email||'?').charAt(0)+(u.cognome||'').charAt(0)).toUpperCase();
+const fullN=u=>(u.nome+' '+u.cognome).trim()||u.email;
+
+const tickClock=()=>{const t=nowStr();['u-clock','fm-clock','su-clock'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t})};
+setInterval(tickClock,1000);tickClock();
+
+let toastT;
+const showToast=(msg,color='')=>{
+  const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(color?' '+color:'');
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3200);
+};
+
+const goView=id=>{document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)};
+const openModal=id=>document.getElementById(id).classList.add('open');
+const closeModal=id=>document.getElementById(id).classList.remove('open');
+['modal-enter','modal-exit'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id)})});
+
+let selectedRole='user';
+function selRole(r){
+  selectedRole=r;
+  ['user','fm','super'].forEach(x=>{document.getElementById('role-'+x).style.display=x===r?'block':'none'});
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>{el.classList.toggle('active',['user','fm','super'][i]===r)});
+  document.getElementById('l-blocked').classList.remove('show');
+  ['l-err','fm-err','su-err'].forEach(id=>document.getElementById(id).classList.remove('show'));
+}
+
+async function landingGo(){
+  const email=document.getElementById('l-email').value.trim().toLowerCase();
+  const errEl=document.getElementById('l-err'),blockEl=document.getElementById('l-blocked');
+  document.getElementById('l-email').classList.remove('error');
+  errEl.classList.remove('show');blockEl.classList.remove('show');
+  if(!isEmail(email)){errEl.textContent='Inserisci un\'email valida.';errEl.classList.add('show');document.getElementById('l-email').classList.add('error');return}
+  try{
+    const res=await API.auth({type:'user_check',email});
+    if(!res.ok){blockEl.classList.add('show');document.getElementById('l-email').classList.add('error');return}
+    const user=res.user;
+    fData.email=email;session={type:'user',email};setSession(session);
+    // aggiorna array locale
+    const idx=users.findIndex(u=>u.email===email);
+    if(idx>=0) users[idx]=user; else users.push(user);
+    if(user.registrato&&user.targa){loadUserDash(user)}
+    else{document.getElementById('f-nome').value=user.nome||'';document.getElementById('f-cognome').value=user.cognome||'';document.getElementById('f-targa').value=user.targa||'';fStep=0;updStepper();document.getElementById('u-funnel').style.display='block';document.getElementById('u-dash').style.display='none';goView('view-user')}
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+
+async function adminLogin(role){
+  const eId=role==='fm'?'fm-email':'su-email',pId=role==='fm'?'fm-pass':'su-pass',errId=role==='fm'?'fm-err':'su-err';
+  const email=document.getElementById(eId).value.trim().toLowerCase();
+  const pass=document.getElementById(pId)?.value||'';
+  const errEl=document.getElementById(errId);errEl.classList.remove('show');
+  try{
+    const res=await API.auth({type:'admin_login',email,password:pass,ruolo:role});
+    if(!res.ok){
+      if(res.reason==='first_login'){
+        document.getElementById('fm-pass-wrap').style.display='none';
+        document.getElementById('fm-firstlogin').style.display='block';
+        fData._fmPending=email;return;
+      }
+      errEl.classList.add('show');return;
+    }
+    const admin=res.admin;
+    session={type:role,email};setSession(session);
+    if(role==='super'){
+      document.getElementById('su-nav-name').textContent=fullN(admin)+' · '+admin.azienda;
+      await loadState();await loadAdmins();renderSuperDash();goView('view-super');showToast('✅ Accesso Super Admin','blue');
+    } else {
+      document.getElementById('fm-nav-name').textContent=fullN(admin)+' · '+admin.azienda;
+      await loadState();renderFmDash();goView('view-fm');showToast('✅ Accesso Facility Manager','blue');
+    }
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+
+function pwStrength(inputId,barId,hintId){
+  const val=document.getElementById(inputId).value;
+  const bar=document.getElementById(barId),hint=document.getElementById(hintId);
+  let s=0;if(val.length>=8)s++;if(/[A-Z]/.test(val))s++;if(/[0-9]/.test(val))s++;if(/[^A-Za-z0-9]/.test(val))s++;
+  const c=['#ef4444','#f59e0b','#30C5FF','#1546D4'],l=['Troppo corta','Debole','Buona','Ottima'];
+  bar.style.width=(s*25)+'%';bar.style.background=c[Math.max(0,s-1)];
+  hint.textContent=val.length===0?'Min. 8 caratteri':l[Math.max(0,s-1)];
+}
+
+function setFmPw(){
+  const pw1=document.getElementById('fm-pw1').value,pw2=document.getElementById('fm-pw2').value;
+  const errEl=document.getElementById('fm-pw-err');errEl.classList.remove('show');
+  if(pw1.length<8){errEl.textContent='Almeno 8 caratteri';errEl.classList.add('show');return}
+  if(pw1!==pw2){errEl.classList.add('show');return}
+  // handled by API call below
+  document.getElementById('fm-nav-name').textContent=fullN(fm)+' · '+fm.company;
+  document.getElementById('fm-pass-wrap').style.display='block';
+  document.getElementById('fm-firstlogin').style.display='none';
+  renderFmDash();goView('view-fm');showToast('✅ Password impostata. Benvenuto!','blue');
+}
+
+function adminLogout(){
+  session=null;clearSession();
+  document.getElementById('fm-pass-wrap').style.display='block';
+  document.getElementById('fm-firstlogin').style.display='none';
+  goView('view-landing');showToast('👋 Uscita effettuata','');
+}
+
+function createFm(){
+  const nome=document.getElementById('su-fm-nome').value.trim();
+  const cognome=document.getElementById('su-fm-cognome').value.trim();
+  const email=document.getElementById('su-fm-email').value.trim().toLowerCase();
+  const company=document.getElementById('su-fm-company').value.trim()||'—';
+  if(!nome||!cognome||!email){showToast('⚠️ Compila tutti i campi','');return}
+  if(!isEmail(email)){showToast('⚠️ Email non valida','');return}
+  // handled by API.addAdmin
+  ['su-fm-nome','su-fm-cognome','su-fm-email','su-fm-company'].forEach(id=>document.getElementById(id).value='');
+  togForm('su-fm-af');renderSuperDash();showToast('✅ FM creato — imposterà la password al primo accesso','blue');
+}
+
+function updStepper(){
+  for(let i=0;i<4;i++){
+    const sc=document.getElementById('sc'+i),sl=document.getElementById('sl'+i);
+    sc.className='sc';
+    if(i<fStep){sc.classList.add('done');sc.innerHTML=''}
+    else if(i===fStep){sc.classList.add('active');sc.innerHTML='<span>'+(i+1)+'</span>'}
+    else{sc.innerHTML='<span>'+(i+1)+'</span>'}
+    if(sl)sl.className='sl'+(i<fStep?' done':'');
+  }
+}
+function fGoStep(n){document.getElementById('fs'+fStep).classList.remove('active');fStep=n;document.getElementById('fs'+n).classList.add('active');updStepper()}
+
+function fNext1(){
+  const nome=document.getElementById('f-nome').value.trim();
+  const cognome=document.getElementById('f-cognome').value.trim();
+  const targa=document.getElementById('f-targa').value.trim().toUpperCase().replace(/\s/g,'');
+  const err=document.getElementById('f-targa-err'),ti=document.getElementById('f-targa');
+  if(!nome||!cognome){showToast('⚠️ Inserisci nome e cognome','');return}
+  if(targa.length<5){err.classList.add('show');ti.classList.add('error');return}
+  err.classList.remove('show');ti.classList.remove('error');
+  fData.nome=nome;fData.cognome=cognome;fData.targa=targa;
+  document.getElementById('f-summ').innerHTML=`
+    <div class="summ-row"><span class="summ-key">Nome</span><span class="summ-val">${nome} ${cognome}</span></div>
+    <div class="summ-row"><span class="summ-key">Email</span><span class="summ-val">${fData.email}</span></div>
+    <div class="summ-row"><span class="summ-key">Targa</span><span class="summ-val"><span class="plate-pill">${targa}</span></span></div>`;
+  fGoStep(1);
+}
+async function fNext2(){
+  try{
+    const res=await API.register({email:fData.email,nome:fData.nome,cognome:fData.cognome,targa:fData.targa});
+    if(!res.ok){showToast('⚠️ '+(res.error||'Errore registrazione'),'');return}
+    const user=res.user;
+    // aggiorna array locale
+    const idx=users.findIndex(u=>u.email===user.email);
+    if(idx>=0) users[idx]=user; else users.push(user);
+    document.getElementById('w-ini').textContent=ini(user);
+    document.getElementById('w-name').textContent='Benvenuto, '+user.nome+'!';
+    document.getElementById('w-email').textContent=user.email;
+    document.getElementById('w-targa').textContent=user.targa;
+    fGoStep(2);renderFmDash();renderSuperDash();
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+function goUserDash(){const user=findUser(fData.email);if(user)loadUserDash(user);showToast('✅ Accesso effettuato','blue')}
+function loadUserDash(user){
+  document.getElementById('u-funnel').style.display='none';document.getElementById('u-dash').style.display='block';
+  document.getElementById('ud-ini').textContent=ini(user);document.getElementById('ud-name').textContent=fullN(user);document.getElementById('ud-plate').textContent=user.targa||'—';
+  goView('view-user');renderUserDash();
+}
+function userLogout(){
+  session=null;clearSession();
+  document.getElementById('u-dash').style.display='none';document.getElementById('u-funnel').style.display='block';document.getElementById('l-email').value='';
+  fData={};fStep=0;updStepper();goView('view-landing');showToast('👋 Uscita effettuata','');
+}
+
+const curEmail=()=>session&&session.type==='user'?session.email:fData.email;
+function renderUserDash(){
+  const free=TOTAL-parkOcc,pct=Math.max(0,(free/TOTAL)*100);
+  const user=findUser(curEmail());const parked=user?!!user.parked:false;
+  document.getElementById('u-free').textContent=free;document.getElementById('u-free').className='hero-n'+(free===0?' full':free<=3?' warn':'');
+  document.getElementById('u-occ').textContent=parkOcc+(parkOcc===1?' posto occupato':' posti occupati');
+  const prog=document.getElementById('u-prog');prog.style.width=pct+'%';prog.className='prog-fill'+(free===0?' full':free<=3?' warn':'');
+  const al=document.getElementById('u-alert');al.className='alert';
+  if(free===0&&!parked){al.classList.add('show','alert-full');document.getElementById('u-al-ico').textContent='⛔';document.getElementById('u-al-msg').innerHTML='<strong>Parcheggio al completo.</strong> Ti avviseremo quando si libera un posto.'}
+  else if(free<=3&&!parked){al.classList.add('show','alert-warn');document.getElementById('u-al-ico').textContent='⚠️';document.getElementById('u-al-msg').innerHTML='<strong>Ultimi '+free+' posti disponibili.</strong>'}
+  const chip=document.getElementById('u-chip'),ct=document.getElementById('u-chip-txt');
+  if(parked){chip.className='chip chip-parked';ct.textContent='Sei parcheggiato'}else{chip.className='chip chip-free';ct.textContent='Non parcheggiato'}
+  document.getElementById('u-btn-in').disabled=parked||(free===0);document.getElementById('u-btn-out').disabled=!parked;
+}
+function askEnter(){const u=findUser(curEmail());if(!u||u.parked||parkOcc>=TOTAL)return;openModal('modal-enter')}
+function askExit(){const u=findUser(curEmail());if(!u||!u.parked)return;openModal('modal-exit')}
+async function confirmEnter(){
+  closeModal('modal-enter');
+  try{
+    const res=await API.updatePark({email:curEmail(),action:'enter'});
+    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    parkOcc=res.occupied;
+    const u=findUser(curEmail());if(u)u.parked=true;
+    renderUserDash();renderFmDash();renderSuperDash();showToast('✅ Ingresso registrato','blue');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+async function confirmExit(){
+  closeModal('modal-exit');
+  try{
+    const res=await API.updatePark({email:curEmail(),action:'exit'});
+    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    parkOcc=res.occupied;
+    const u=findUser(curEmail());if(u)u.parked=false;
+    renderUserDash();renderFmDash();renderSuperDash();showToast('👋 Uscita registrata','');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+
+function renderFmDash(){
+  const free=TOTAL-parkOcc,pct=Math.max(0,(free/TOTAL)*100);
+  document.getElementById('fm-free').textContent=free;document.getElementById('fm-free').className='hero-n'+(free===0?' full':free<=3?' warn':'');
+  document.getElementById('fm-occ').textContent=parkOcc+(parkOcc===1?' posto occupato':' posti occupati');
+  document.getElementById('fm-prog').style.width=pct+'%';document.getElementById('fm-prog').className='prog-fill'+(free===0?' full':free<=3?' warn':'');
+  document.getElementById('fm-s-free').textContent=free;document.getElementById('fm-s-occ').textContent=parkOcc;
+  document.getElementById('fm-s-users').textContent=users.filter(u=>u.registrato).length;
+  document.getElementById('fm-ucount').textContent='('+users.length+')';
+  renderUList('fm-ulist');
+}
+function renderSuperDash(){
+  const free=TOTAL-parkOcc,pct=Math.max(0,(free/TOTAL)*100);
+  document.getElementById('su-free').textContent=free;document.getElementById('su-free').className='hero-n'+(free===0?' full':free<=3?' warn':'');
+  document.getElementById('su-occ').textContent=parkOcc+(parkOcc===1?' posto occupato':' posti occupati');
+  document.getElementById('su-prog').style.width=pct+'%';document.getElementById('su-prog').className='prog-fill'+(free===0?' full':free<=3?' warn':'');
+  document.getElementById('su-s-free').textContent=free;document.getElementById('su-s-occ').textContent=parkOcc;document.getElementById('su-s-users').textContent=users.length;
+  document.getElementById('su-ucount').textContent='('+users.length+')';document.getElementById('su-acount').textContent='('+admins.filter(a=>a.ruolo==="fm").length+')';
+  renderAdminList();renderUList('su-ulist');
+}
+function renderAdminList(){
+  const el=document.getElementById('su-alist');
+  if(!admins.length){el.innerHTML='<div class="empty-st">Nessun admin</div>';return}
+  const fmList=admins.filter(a=>a.ruolo==='fm');
+  el.innerHTML=admins.map((a,i)=>{
+    const isSuper=a.ruolo==='super';
+    const firstTag=!isSuper&&a.first_login?`<div style="margin-top:3px"><span class="tag t-firstlog">⏳ primo accesso</span></div>`:'';
+    const fmIdx=fmList.findIndex(f=>f.email===a.email);
+    const delBtn=!isSuper?`<button class="del-btn" onclick="removeFm(${fmIdx})">✕</button>`:'<div style="width:26px"></div>';
+    return `<div class="row"><div class="av ${isSuper?'av-super':'av-fm'}">${ini(a)}</div><div class="row-info"><div class="row-name">${fullN(a)}</div><div class="row-sub">${a.email} · ${a.azienda||''}</div>${firstTag}</div><span class="rb ${isSuper?'rb-super':'rb-fm'}">${isSuper?'SUPER':'FM'}</span>${delBtn}</div>`;
+  }).join('');
+}
+function renderUList(listId){
+  const list=document.getElementById(listId);
+  if(!users.length){list.innerHTML='<div class="empty-st">Nessun utente in whitelist</div>';return}
+  list.innerHTML=users.map((u,i)=>{
+    const plate=u.targa?`<span class="tag t-plate">${u.targa}</span>`:'';
+    const parkedB=u.parked?`<span class="tag t-parked">🚗 in sosta</span>`:'';
+    const pendB=!u.registrato?`<span class="tag t-pending">⏳ non registrato</span>`:'';
+    return `<div class="row"><div class="av av-user">${ini(u)}</div><div class="row-info"><div class="row-name">${u.registrato?fullN(u):u.email}</div><div class="row-meta"><span style="font-size:10px;color:var(--muted);font-weight:600">${u.email}</span>${plate}${parkedB}${pendB}</div></div><button class="del-btn" onclick="removeUser(${i})">✕</button></div>`;
+  }).join('');
+}
+
+const togForm=id=>{const f=document.getElementById(id);f.classList.toggle('open')};
+async function addUser(prefix){
+  const p=prefix==='fm'?'fm-u':'su-u';
+  const nome=document.getElementById(p+'-nome').value.trim();
+  const cognome=document.getElementById(p+'-cognome').value.trim();
+  const email=document.getElementById(p+'-email').value.trim().toLowerCase();
+  const targa=document.getElementById(p+'-targa').value.trim().toUpperCase();
+  if(!email){showToast('⚠️ Email obbligatoria','');return}
+  if(!isEmail(email)){showToast('⚠️ Email non valida','');return}
+  try{
+    const res=await API.addUser({nome,cognome,email,targa});
+    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    users.push(res.user);
+    [p+'-nome',p+'-cognome',p+'-email',p+'-targa'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+    togForm(prefix==='fm'?'fm-af':'su-u-af');
+    renderFmDash();renderSuperDash();
+    showToast('✅ Utente aggiunto alla whitelist','blue');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+async function removeUser(i){
+  const u=users[i];
+  try{
+    await API.removeUser(u.email);
+    if(session&&session.email===u.email){session=null;clearSession()}
+    users.splice(i,1);
+    if(u.parked&&parkOcc>0) parkOcc--;
+    renderFmDash();renderSuperDash();renderUserDash();
+    showToast('🗑 Utente rimosso','');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+async function removeFm(i){
+  if(i<0)return;
+  // admins array: first entries are super (non deletable), rest are FM
+  const superCount = admins.filter(a=>a.ruolo==='super').length;
+  const fm = admins.filter(a=>a.ruolo==='fm')[i];
+  if(!fm)return;
+  try{
+    await API.removeAdmin(fm.email);
+    await loadAdmins();renderSuperDash();
+    showToast('🗑 FM rimosso','');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+
+async function init(){
+  // Carica sempre lo stato dal DB
+  await loadState();
+
+  if(!session){goView('view-landing');return}
+
+  if(session.type==='user'){
+    const u=findUser(session.email);
+    if(u&&u.registrato&&u.targa){fData.email=session.email;loadUserDash(u)}
+    else{session=null;clearSession();goView('view-landing')}
+  }
+  else if(session.type==='fm'||session.type==='super'){
+    // Verifica sessione admin tramite API
+    try{
+      await loadAdmins();
+      const admin=findAdmin(session.email);
+      if(!admin||admin.first_login){session=null;clearSession();goView('view-landing');return}
+      if(session.type==='fm'){
+        document.getElementById('fm-nav-name').textContent=fullN(admin)+' · '+(admin.azienda||'');
+        renderFmDash();goView('view-fm');
+      } else {
+        document.getElementById('su-nav-name').textContent=fullN(admin)+' · '+(admin.azienda||'');
+        renderSuperDash();goView('view-super');
+      }
+    }catch(e){session=null;clearSession();goView('view-landing')}
+  }
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "parking-cloud-retelit",
+  "version": "1.0.0",
+  "description": "Parking Cloud - Gestione posti aziendali Retelit Spa",
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.0"
+  }
+}
