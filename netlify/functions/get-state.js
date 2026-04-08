@@ -4,7 +4,7 @@
 const { neon } = require('@neondatabase/serverless');
 
 exports.handler = async () => {
-  const sql = neon(process.env.NETLIFY_DATABASE_URL);
+  const sql = neon(process.env.DATABASE_URL);
   try {
     const [state] = await sql`
       SELECT occupied, total FROM parking_state WHERE cliente = 'retelit'

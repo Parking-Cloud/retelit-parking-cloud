@@ -6,7 +6,7 @@
 const { neon } = require('@neondatabase/serverless');
 
 exports.handler = async (event) => {
-  const sql = neon(process.env.NETLIFY_DATABASE_URL);
+  const sql = neon(process.env.DATABASE_URL);
   try {
 
     // ── Lista utenti ──
