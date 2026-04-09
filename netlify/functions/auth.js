@@ -39,7 +39,7 @@ exports.handler = async (event) => {
         return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'not_whitelisted' }) };
       return {
         statusCode: 200,
-        body: JSON.stringify({ ok: true, user: { email: user.email, nome: user.nome, cognome: user.cognome, targa: user.targa, registrato: user.registrato, parked: user.parked } })
+        body: JSON.stringify({ ok: true, user: { email: user.email, nome: user.nome, cognome: user.cognome, targa: user.targa, pin: user.pin, registrato: user.registrato, parked: user.parked } })
       };
     }
 

@@ -102,6 +102,14 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
 .reset-btn{width:26px;height:26px;border-radius:6px;background:rgba(21,70,212,.08);color:var(--blue);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-right:4px}
 .reset-btn:hover{background:rgba(21,70,212,.18)}
 
+/* ── PIN (user dashboard) ── */
+.pin-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.pin-lbl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.pin-val{font-size:22px;font-weight:900;letter-spacing:4px;color:var(--blue);font-family:monospace}
+/* ── PIN EDIT BUTTON (admin list) ── */
+.pin-btn{width:26px;height:26px;border-radius:6px;background:rgba(21,70,212,.08);color:var(--blue);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.pin-btn:hover{background:rgba(21,70,212,.18)}
+
 /* ── LOGOUT CARD ── */
 .logout-card{text-align:center;margin-top:8px;padding:14px 0 2px;border-top:1px solid rgba(21,70,212,.07)}
 
@@ -546,6 +554,13 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
               Sono uscito
             </button>
           </div>
+          <div class="pin-section" id="u-pin-section" style="display:none">
+            <div style="font-size:22px">🔐</div>
+            <div>
+              <div class="pin-lbl">PIN Accesso</div>
+              <div class="pin-val" id="u-pin-val">—</div>
+            </div>
+          </div>
         </div>
         <div class="logout-row"><button class="logout-btn" onclick="userLogout()">Esci dall'account</button></div>
       </div>
@@ -604,6 +619,7 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
           <div><div class="field-label">Email</div><input class="fi" id="fm-u-email" type="email" placeholder="mario@retelit.it"></div>
           <div><div class="field-label">Targa (opz.)</div><input class="fi plate" id="fm-u-targa" type="text" placeholder="AB123CD" maxlength="10"></div>
         </div>
+        <div><div class="field-label">PIN Accesso (opz.)</div><input class="fi" id="fm-u-pin" type="text" inputmode="numeric" placeholder="Es. 1234" maxlength="8"></div>
         <div class="fbtn-row">
           <button class="fbtn fbtn-cancel" onclick="togForm('fm-af')">Annulla</button>
           <button class="fbtn fbtn-add" onclick="addUser('fm')">Aggiungi</button>
@@ -693,6 +709,7 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
           <div><div class="field-label">Email</div><input class="fi" id="su-u-email" type="email" placeholder="mario@retelit.it"></div>
           <div><div class="field-label">Targa (opz.)</div><input class="fi plate" id="su-u-targa" type="text" placeholder="AB123CD" maxlength="10"></div>
         </div>
+        <div><div class="field-label">PIN Accesso (opz.)</div><input class="fi" id="su-u-pin" type="text" inputmode="numeric" placeholder="Es. 1234" maxlength="8"></div>
         <div class="fbtn-row">
           <button class="fbtn fbtn-cancel" onclick="togForm('su-u-af')">Annulla</button>
           <button class="fbtn fbtn-add" onclick="addUser('su')">Aggiungi</button>
@@ -760,6 +777,7 @@ const API = {
   addAdmin:    (body)      => fetch('/.netlify/functions/manage-admins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
   removeAdmin: (email)     => fetch('/.netlify/functions/manage-admins', {method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}).then(r=>r.json()),
   resetFmPw:   (email)     => fetch('/.netlify/functions/manage-admins', {method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify({email,action:'reset_password'})}).then(r=>r.json()),
+  updatePin:   (email,pin) => fetch('/.netlify/functions/manage-users',  {method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify({email,pin})}).then(r=>r.json()),
 };
 
 /* Sessione — rimane solo nel sessionStorage (tab corrente) */
@@ -1004,6 +1022,11 @@ function renderUserDash(){
   const chip=document.getElementById('u-chip'),ct=document.getElementById('u-chip-txt');
   if(parked){chip.className='chip chip-parked';ct.textContent='Sei parcheggiato'}else{chip.className='chip chip-free';ct.textContent='Non parcheggiato'}
   document.getElementById('u-btn-in').disabled=parked||(free===0);document.getElementById('u-btn-out').disabled=!parked;
+  const pinSection=document.getElementById('u-pin-section');
+  if(pinSection){
+    if(user&&user.pin){pinSection.style.display='flex';document.getElementById('u-pin-val').textContent=user.pin}
+    else{pinSection.style.display='none'}
+  }
 }
 function askEnter(){const u=findUser(curEmail());if(!u||u.parked||parkOcc>=TOTAL)return;openModal('modal-enter')}
 function askExit(){const u=findUser(curEmail());if(!u||!u.parked)return;openModal('modal-exit')}
@@ -1068,7 +1091,8 @@ function renderUList(listId){
     const plate=u.targa?`<span class="tag t-plate">${u.targa}</span>`:'';
     const parkedB=u.parked?`<span class="tag t-parked">🚗 in sosta</span>`:'';
     const pendB=!u.registrato?`<span class="tag t-pending">⏳ non registrato</span>`:'';
-    return `<div class="row"><div class="av av-user">${ini(u)}</div><div class="row-info"><div class="row-name">${u.registrato?fullN(u):u.email}</div><div class="row-meta"><span style="font-size:10px;color:var(--muted);font-weight:600">${u.email}</span>${plate}${parkedB}${pendB}</div></div><button class="del-btn" onclick="removeUser(${i})">✕</button></div>`;
+    const pinB=u.pin?`<span class="tag" style="background:rgba(21,70,212,.08);color:var(--blue);font-weight:700">🔑 ${u.pin}</span>`:'';
+    return `<div class="row"><div class="av av-user">${ini(u)}</div><div class="row-info"><div class="row-name">${u.registrato?fullN(u):u.email}</div><div class="row-meta"><span style="font-size:10px;color:var(--muted);font-weight:600">${u.email}</span>${plate}${parkedB}${pendB}${pinB}</div></div><div style="display:flex;gap:4px"><button class="pin-btn" title="Modifica PIN" onclick="updateUserPin(${i})">✏️</button><button class="del-btn" onclick="removeUser(${i})">✕</button></div></div>`;
   }).join('');
 }
 
@@ -1079,16 +1103,32 @@ async function addUser(prefix){
   const cognome=document.getElementById(p+'-cognome').value.trim();
   const email=document.getElementById(p+'-email').value.trim().toLowerCase();
   const targa=document.getElementById(p+'-targa').value.trim().toUpperCase();
+  const pin=document.getElementById(p+'-pin').value.trim().replace(/\D/g,'')||null;
   if(!email){showToast('⚠️ Email obbligatoria','');return}
   if(!isEmail(email)){showToast('⚠️ Email non valida','');return}
+  if(pin&&pin.length<4){showToast('⚠️ PIN min. 4 cifre','');return}
   try{
-    const res=await API.addUser({nome,cognome,email,targa});
+    const res=await API.addUser({nome,cognome,email,targa,pin});
     if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
     users.push(res.user);
-    [p+'-nome',p+'-cognome',p+'-email',p+'-targa'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
+    [p+'-nome',p+'-cognome',p+'-email',p+'-targa',p+'-pin'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
     togForm(prefix==='fm'?'fm-af':'su-u-af');
     renderFmDash();renderSuperDash();
     showToast('✅ Utente aggiunto alla whitelist','blue');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+async function updateUserPin(i){
+  const u=users[i];
+  const pin=prompt('PIN Accesso per '+(fullN(u)||u.email)+'\n\nInserisci il nuovo PIN (solo numeri, min. 4 cifre).\nLascia vuoto per rimuovere il PIN.',u.pin||'');
+  if(pin===null)return;
+  const pinClean=pin.replace(/\D/g,'');
+  if(pin!==''&&pinClean.length<4){showToast('⚠️ PIN min. 4 cifre numeriche','');return}
+  try{
+    const res=await API.updatePin(u.email,pinClean||null);
+    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    users[i]={...u,pin:pinClean||null};
+    renderFmDash();renderSuperDash();renderUserDash();
+    showToast('✅ PIN aggiornato','blue');
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 async function removeUser(i){

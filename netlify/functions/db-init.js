@@ -48,6 +48,9 @@ exports.handler = async () => {
         total    INTEGER DEFAULT 15
       )
     `;
+    // Migration sicura: aggiunge colonna pin se non esiste
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pin TEXT`;
+
     await sql`
       INSERT INTO parking_state (cliente, occupied, total)
       VALUES ('retelit', 0, 15)

@@ -1,6 +1,7 @@
 // netlify/functions/manage-users.js
 // GET    → lista tutti gli utenti
-// POST   → { action: 'add', email, nome, cognome, targa }
+// POST   → { email, nome, cognome, targa, pin }
+// PATCH  → { email, pin }
 // DELETE → { email }
 
 const { neon } = require('@neondatabase/serverless');
@@ -11,23 +12,34 @@ exports.handler = async (event) => {
 
     // ── Lista utenti ──
     if (event.httpMethod === 'GET') {
-      const users = await sql`SELECT id, email, nome, cognome, targa, registrato, parked, created_at FROM users ORDER BY created_at`;
+      const users = await sql`SELECT id, email, nome, cognome, targa, pin, registrato, parked, created_at FROM users ORDER BY created_at`;
       return { statusCode: 200, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) };
     }
 
     // ── Aggiungi utente ──
     if (event.httpMethod === 'POST') {
-      const { email, nome = '', cognome = '', targa = '' } = JSON.parse(event.body);
+      const { email, nome = '', cognome = '', targa = '', pin = null } = JSON.parse(event.body);
       if (!email) return { statusCode: 400, body: JSON.stringify({ error: 'Email obbligatoria' }) };
       const existing = await sql`SELECT id FROM users WHERE email = ${email.toLowerCase()}`;
       if (existing.length) return { statusCode: 409, body: JSON.stringify({ error: 'Email già in whitelist' }) };
       const registrato = !!(nome && targa);
+      const pinVal = pin ? String(pin).replace(/\D/g, '') || null : null;
       const [user] = await sql`
-        INSERT INTO users (email, nome, cognome, targa, registrato, parked)
-        VALUES (${email.toLowerCase()}, ${nome}, ${cognome}, ${targa.toUpperCase()}, ${registrato}, false)
+        INSERT INTO users (email, nome, cognome, targa, pin, registrato, parked)
+        VALUES (${email.toLowerCase()}, ${nome}, ${cognome}, ${targa.toUpperCase()}, ${pinVal}, ${registrato}, false)
         RETURNING *
       `;
       return { statusCode: 201, body: JSON.stringify({ ok: true, user }) };
+    }
+
+    // ── Aggiorna PIN utente ──
+    if (event.httpMethod === 'PATCH') {
+      const { email, pin } = JSON.parse(event.body);
+      if (!email) return { statusCode: 400, body: JSON.stringify({ error: 'Email obbligatoria' }) };
+      const pinVal = pin ? String(pin).replace(/\D/g, '') || null : null;
+      const [user] = await sql`UPDATE users SET pin = ${pinVal} WHERE email = ${email.toLowerCase()} RETURNING *`;
+      if (!user) return { statusCode: 404, body: JSON.stringify({ error: 'Utente non trovato' }) };
+      return { statusCode: 200, body: JSON.stringify({ ok: true, user }) };
     }
 
     // ── Rimuovi utente ──

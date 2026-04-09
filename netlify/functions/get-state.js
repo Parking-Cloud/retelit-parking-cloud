@@ -10,7 +10,7 @@ exports.handler = async () => {
       SELECT occupied, total FROM parking_state WHERE cliente = 'retelit'
     `;
     const users = await sql`
-      SELECT id, email, nome, cognome, targa, registrato, parked FROM users ORDER BY created_at
+      SELECT id, email, nome, cognome, targa, pin, registrato, parked FROM users ORDER BY created_at
     `;
     return {
       statusCode: 200,
