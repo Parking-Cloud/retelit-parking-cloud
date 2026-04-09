@@ -3,7 +3,25 @@
 // Body: { type: 'user_check' | 'admin_login' | 'admin_set_password', ...params }
 
 const { neon } = require('@neondatabase/serverless');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+/* ── Password helpers (PBKDF2-SHA512, no external deps) ── */
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+function verifyPassword(password, stored) {
+  if (!stored) return false;
+  const idx = stored.indexOf(':');
+  if (idx === -1) return false;
+  const salt = stored.slice(0, idx);
+  const hash = stored.slice(idx + 1);
+  try {
+    const verify = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(verify, 'hex'), Buffer.from(hash, 'hex'));
+  } catch { return false; }
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST')
@@ -33,8 +51,7 @@ exports.handler = async (event) => {
         return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'not_found' }) };
       if (admin.first_login)
         return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'first_login', nome: admin.nome, cognome: admin.cognome, azienda: admin.azienda }) };
-      const valid = await bcrypt.compare(password, admin.password);
-      if (!valid)
+      if (!verifyPassword(password, admin.password))
         return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'wrong_password' }) };
       return {
         statusCode: 200,
@@ -50,7 +67,7 @@ exports.handler = async (event) => {
       const [admin] = await sql`SELECT * FROM admins WHERE email = ${email.toLowerCase()} AND first_login = true`;
       if (!admin)
         return { statusCode: 404, body: JSON.stringify({ error: 'Admin non trovato o già attivato' }) };
-      const hashed = await bcrypt.hash(password, 10);
+      const hashed = hashPassword(password);
       await sql`UPDATE admins SET password = ${hashed}, first_login = false WHERE email = ${email.toLowerCase()}`;
       return {
         statusCode: 200,
