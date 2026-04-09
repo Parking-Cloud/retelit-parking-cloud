@@ -3,7 +3,13 @@
 // GET /.netlify/functions/db-init
 
 const { neon } = require('@neondatabase/serverless');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
 
 exports.handler = async () => {
   const sql = neon(process.env.DATABASE_URL);
@@ -14,8 +20,8 @@ exports.handler = async () => {
       CREATE TABLE IF NOT EXISTS admins (
         id          SERIAL PRIMARY KEY,
         email       TEXT UNIQUE NOT NULL,
-        password    TEXT,           -- null finché FM non imposta la prima volta
-        ruolo       TEXT NOT NULL,  -- 'super' | 'fm'
+        password    TEXT,
+        ruolo       TEXT NOT NULL,
         nome        TEXT,
         cognome     TEXT,
         azienda     TEXT,
@@ -55,17 +61,24 @@ exports.handler = async () => {
       ON CONFLICT (cliente) DO NOTHING
     `;
 
-    // Inserisce super admin Parking Cloud se non esistono (password hashate)
-    const hash1 = await bcrypt.hash('pc-admin-2025', 10);
-    const hash2 = await bcrypt.hash('pc-team-2025', 10);
+    // Super admin: upsert con password aggiornata (PBKDF2)
+    const hash1 = hashPassword('pc-admin-2025');
+    const hash2 = hashPassword('pc-team-2025');
     await sql`
       INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
       VALUES ('fede@parkingcloud.eu', ${hash1}, 'super', 'Federico', 'Parking Cloud', 'Parking Cloud Srl', false)
-      ON CONFLICT (email) DO NOTHING
+      ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, first_login = false
     `;
     await sql`
       INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
       VALUES ('team@parkingcloud.eu', ${hash2}, 'super', 'Team', 'Parking Cloud', 'Parking Cloud Srl', false)
+      ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, first_login = false
+    `;
+
+    // FM Retelit (se non esiste)
+    await sql`
+      INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
+      VALUES ('facility@retelit.it', null, 'fm', 'Facility', 'Manager', 'Retelit Spa', true)
       ON CONFLICT (email) DO NOTHING
     `;
 
