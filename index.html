@@ -887,6 +887,7 @@ function togglePw(inputId,btn){
 }
 
 
+function pwStrength(inputId,barId,hintId){
   const val=document.getElementById(inputId).value;
   const bar=document.getElementById(barId),hint=document.getElementById(hintId);
   let s=0;if(val.length>=8)s++;if(/[A-Z]/.test(val))s++;if(/[0-9]/.test(val))s++;if(/[^A-Za-z0-9]/.test(val))s++;
