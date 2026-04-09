@@ -88,6 +88,23 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
 .pw-bar{height:100%;border-radius:2px;width:0;transition:width .3s,background .3s}
 .pw-hint{font-size:10px;color:var(--muted);margin-top:4px;font-weight:600}
 
+/* ── SHOW/HIDE PASSWORD ── */
+.pw-wrap{position:relative}
+.pw-wrap .fi{padding-right:42px}
+.pw-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:3px;display:flex;align-items:center;line-height:1}
+.pw-eye:hover{color:var(--blue)}
+.pw-eye svg{pointer-events:none}
+.pw-eye .eye-off{display:none}
+.pw-eye.shown .eye-on{display:none}
+.pw-eye.shown .eye-off{display:block}
+
+/* ── RESET PASSWORD BUTTON ── */
+.reset-btn{width:26px;height:26px;border-radius:6px;background:rgba(21,70,212,.08);color:var(--blue);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-right:4px}
+.reset-btn:hover{background:rgba(21,70,212,.18)}
+
+/* ── LOGOUT CARD ── */
+.logout-card{text-align:center;margin-top:8px;padding:14px 0 2px;border-top:1px solid rgba(21,70,212,.07)}
+
 /* ── HERO ── */
 .hero{background:var(--blue);padding:34px 24px 42px;text-align:center;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(48,197,255,.2) 0%,transparent 70%);pointer-events:none}
@@ -250,6 +267,67 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
 
 /* ── FM FIRST LOGIN ── */
 #fm-firstlogin{display:none}
+
+/* ══════════════════════════════
+   MOBILE RESPONSIVE
+   ══════════════════════════════ */
+@media(max-width:520px){
+  /* navbar */
+  .navbar{padding:0 12px;height:56px}
+  .nav-pill{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;padding:4px 8px}
+  .nav-role{display:none}
+  .nav-clock{font-size:11px;gap:4px}
+
+  /* auth card */
+  .auth-card{padding:28px 16px 22px;border-radius:18px}
+  .auth-logo-svg{height:64px}
+  .auth-tabs{gap:4px}
+  .auth-tab{font-size:10px;padding:8px 4px}
+
+  /* contenuto pagine */
+  .page-content{padding:16px 12px 32px}
+  .hero{padding:24px 14px 32px}
+  .hero-n{font-size:68px;letter-spacing:-4px}
+
+  /* statistiche */
+  .stats-g{gap:6px}
+  .stat-c{padding:10px 8px}
+  .stat-n{font-size:22px}
+  .stat-l{font-size:9px}
+
+  /* form a 2 colonne → 1 colonna */
+  .af-grid{grid-template-columns:1fr}
+  .f2{grid-template-columns:1fr}
+
+  /* pulsanti form */
+  .fbtn-row{flex-wrap:wrap}
+  .fbtn{flex:1;min-width:100px}
+
+  /* card */
+  .card{padding:16px 14px}
+
+  /* bottoni azione utente */
+  .btn{font-size:12px;padding:13px 10px}
+
+  /* modale */
+  .overlay{padding:14px}
+  .modal{padding:24px 18px 18px}
+  .modal-btns{gap:6px}
+
+  /* righe lista utenti */
+  .row{gap:8px}
+  .row-name{font-size:12px}
+  .row-sub{font-size:9px}
+  .del-btn{width:24px;height:24px;font-size:11px}
+  .reset-btn{width:24px;height:24px;font-size:11px}
+}
+
+@media(max-width:360px){
+  .navbar{height:52px}
+  .nav-pill{max-width:80px}
+  .nav-clock{display:none}
+  .hero-n{font-size:56px}
+}
 </style>
 </head>
 <body>
@@ -305,21 +383,40 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
         <div id="fm-pass-wrap">
           <div class="field">
             <div class="field-label">Password</div>
-            <input class="fi" id="fm-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin('fm')">
+            <div class="pw-wrap">
+              <input class="fi" id="fm-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin('fm')">
+              <button class="pw-eye" type="button" onclick="togglePw('fm-pass',this)" tabindex="-1" aria-label="Mostra password">
+                <svg class="eye-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
             <div class="field-err" id="fm-err">Credenziali non valide</div>
           </div>
           <button class="btn-primary" onclick="adminLogin('fm')">Accedi →</button>
+          <button class="btn-secondary" style="font-size:12px" onclick="openModal('modal-forgot')">Password dimenticata?</button>
         </div>
         <div id="fm-firstlogin">
           <div class="field">
             <div class="field-label">Nuova password</div>
-            <input class="fi" id="fm-pw1" type="password" placeholder="Scegli una password" oninput="pwStrength('fm-pw1','fm-pwbar','fm-pwbartxt')">
+            <div class="pw-wrap">
+              <input class="fi" id="fm-pw1" type="password" placeholder="Scegli una password" oninput="pwStrength('fm-pw1','fm-pwbar','fm-pwbartxt')">
+              <button class="pw-eye" type="button" onclick="togglePw('fm-pw1',this)" tabindex="-1" aria-label="Mostra password">
+                <svg class="eye-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
             <div class="pw-strength"><div class="pw-bar" id="fm-pwbar"></div></div>
             <div class="pw-hint" id="fm-pwbartxt">Min. 8 caratteri</div>
           </div>
           <div class="field">
             <div class="field-label">Conferma password</div>
-            <input class="fi" id="fm-pw2" type="password" placeholder="Ripeti la password" onkeydown="if(event.key==='Enter')setFmPw()">
+            <div class="pw-wrap">
+              <input class="fi" id="fm-pw2" type="password" placeholder="Ripeti la password" onkeydown="if(event.key==='Enter')setFmPw()">
+              <button class="pw-eye" type="button" onclick="togglePw('fm-pw2',this)" tabindex="-1" aria-label="Mostra password">
+                <svg class="eye-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
             <div class="field-err" id="fm-pw-err">Le password non coincidono</div>
           </div>
           <button class="btn-primary" onclick="setFmPw()">Imposta password e accedi →</button>
@@ -333,7 +430,13 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
         </div>
         <div class="field">
           <div class="field-label">Password</div>
-          <input class="fi" id="su-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin('super')">
+          <div class="pw-wrap">
+            <input class="fi" id="su-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin('super')">
+            <button class="pw-eye" type="button" onclick="togglePw('su-pass',this)" tabindex="-1" aria-label="Mostra password">
+              <svg class="eye-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
           <div class="field-err" id="su-err">Credenziali non valide</div>
         </div>
         <button class="btn-primary" onclick="adminLogin('super')">Accedi →</button>
@@ -355,7 +458,6 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
     </div>
     <div class="nav-r">
       <div class="nav-pill">Retelit Spa</div>
-      <div class="nav-clock"><div class="pulse-dot"></div><span id="u-clock">--:--</span></div>
     </div>
   </div>
 
@@ -466,7 +568,6 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
     <div class="nav-r">
       <div class="nav-pill" id="fm-nav-name">Facility Manager</div>
       <div class="nav-role role-fm">FM</div>
-      <div class="nav-clock"><div class="pulse-dot"></div><span id="fm-clock">--:--</span></div>
       <button class="nav-out" onclick="adminLogout()">Esci</button>
     </div>
   </div>
@@ -511,6 +612,9 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
       <div id="fm-ulist"></div>
     </div>
 
+    <div class="logout-card">
+      <button class="logout-btn" onclick="adminLogout()">← Esci dall'account</button>
+    </div>
 
   </div>
   <div class="footer-bar">Parking Cloud · Pannello Facility Manager · Retelit Spa</div>
@@ -530,7 +634,6 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
     <div class="nav-r">
       <div class="nav-pill" id="su-nav-name">Super Admin</div>
       <div class="nav-role role-super">ADMIN</div>
-      <div class="nav-clock"><div class="pulse-dot"></div><span id="su-clock">--:--</span></div>
       <button class="nav-out" onclick="adminLogout()">Esci</button>
     </div>
   </div>
@@ -598,6 +701,9 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
       <div id="su-ulist"></div>
     </div>
 
+    <div class="logout-card">
+      <button class="logout-btn" onclick="adminLogout()">← Esci dall'account</button>
+    </div>
 
   </div>
   <div class="footer-bar">Parking Cloud · Super Admin · © 2025 Parking Cloud Srl</div>
@@ -626,6 +732,16 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
     </div>
   </div>
 </div>
+<!-- MODALE PASSWORD DIMENTICATA FM -->
+<div class="overlay" id="modal-forgot">
+  <div class="modal">
+    <div class="modal-ico" style="background:var(--blue-20);font-size:22px">🔑</div>
+    <div class="modal-title">Password dimenticata?</div>
+    <div class="modal-body">Contatta il team <strong>Parking Cloud</strong> per reimpostare la password.<br><br>📧 <strong>team@parkingcloud.eu</strong><br><br><span style="font-size:11px">L'amministratore potrà effettuare il reset dal proprio pannello.</span></div>
+    <button class="mbtn mbtn-enter" style="width:100%" onclick="closeModal('modal-forgot')">Chiudi</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -643,6 +759,7 @@ const API = {
   getAdmins:   ()          => fetch('/.netlify/functions/manage-admins').then(r=>r.json()),
   addAdmin:    (body)      => fetch('/.netlify/functions/manage-admins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
   removeAdmin: (email)     => fetch('/.netlify/functions/manage-admins', {method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}).then(r=>r.json()),
+  resetFmPw:   (email)     => fetch('/.netlify/functions/manage-admins', {method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify({email,action:'reset_password'})}).then(r=>r.json()),
 };
 
 /* Sessione — rimane solo nel sessionStorage (tab corrente) */
@@ -696,7 +813,7 @@ const showToast=(msg,color='')=>{
 const goView=id=>{document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)};
 const openModal=id=>document.getElementById(id).classList.add('open');
 const closeModal=id=>document.getElementById(id).classList.remove('open');
-['modal-enter','modal-exit'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id)})});
+['modal-enter','modal-exit','modal-forgot'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id)})});
 
 let selectedRole='user';
 function selRole(r){
@@ -753,7 +870,15 @@ async function adminLogin(role){
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 
-function pwStrength(inputId,barId,hintId){
+/* Mostra / nascondi password */
+function togglePw(inputId,btn){
+  const el=document.getElementById(inputId);
+  const show=el.type==='password';
+  el.type=show?'text':'password';
+  btn.classList.toggle('shown',show);
+}
+
+
   const val=document.getElementById(inputId).value;
   const bar=document.getElementById(barId),hint=document.getElementById(hintId);
   let s=0;if(val.length>=8)s++;if(/[A-Z]/.test(val))s++;if(/[0-9]/.test(val))s++;if(/[^A-Za-z0-9]/.test(val))s++;
@@ -762,16 +887,22 @@ function pwStrength(inputId,barId,hintId){
   hint.textContent=val.length===0?'Min. 8 caratteri':l[Math.max(0,s-1)];
 }
 
-function setFmPw(){
+async function setFmPw(){
   const pw1=document.getElementById('fm-pw1').value,pw2=document.getElementById('fm-pw2').value;
   const errEl=document.getElementById('fm-pw-err');errEl.classList.remove('show');
   if(pw1.length<8){errEl.textContent='Almeno 8 caratteri';errEl.classList.add('show');return}
   if(pw1!==pw2){errEl.classList.add('show');return}
-  // handled by API call below
-  document.getElementById('fm-nav-name').textContent=fullN(fm)+' · '+fm.company;
-  document.getElementById('fm-pass-wrap').style.display='block';
-  document.getElementById('fm-firstlogin').style.display='none';
-  renderFmDash();goView('view-fm');showToast('✅ Password impostata. Benvenuto!','blue');
+  try{
+    const res=await API.auth({type:'admin_set_password',email:fData._fmPending,password:pw1});
+    if(!res.ok){errEl.textContent=res.error||'Errore';errEl.classList.add('show');return}
+    const admin=res.admin;
+    session={type:'fm',email:admin.email};setSession(session);
+    admins=admins.map(a=>a.email===admin.email?{...a,...admin}:a);
+    document.getElementById('fm-nav-name').textContent=fullN(admin)+' · '+(admin.azienda||'');
+    document.getElementById('fm-pass-wrap').style.display='block';
+    document.getElementById('fm-firstlogin').style.display='none';
+    await loadState();renderFmDash();goView('view-fm');showToast('✅ Password impostata. Benvenuto!','blue');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 
 function adminLogout(){
@@ -781,16 +912,20 @@ function adminLogout(){
   goView('view-landing');showToast('👋 Uscita effettuata','');
 }
 
-function createFm(){
+async function createFm(){
   const nome=document.getElementById('su-fm-nome').value.trim();
   const cognome=document.getElementById('su-fm-cognome').value.trim();
   const email=document.getElementById('su-fm-email').value.trim().toLowerCase();
   const company=document.getElementById('su-fm-company').value.trim()||'—';
   if(!nome||!cognome||!email){showToast('⚠️ Compila tutti i campi','');return}
   if(!isEmail(email)){showToast('⚠️ Email non valida','');return}
-  // handled by API.addAdmin
-  ['su-fm-nome','su-fm-cognome','su-fm-email','su-fm-company'].forEach(id=>document.getElementById(id).value='');
-  togForm('su-fm-af');renderSuperDash();showToast('✅ FM creato — imposterà la password al primo accesso','blue');
+  try{
+    const res=await API.addAdmin({email,nome,cognome,azienda:company});
+    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    admins.push(res.admin);
+    ['su-fm-nome','su-fm-cognome','su-fm-email','su-fm-company'].forEach(id=>document.getElementById(id).value='');
+    togForm('su-fm-af');renderSuperDash();showToast('✅ FM creato — imposterà la password al primo accesso','blue');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 
 function updStepper(){
@@ -911,8 +1046,10 @@ function renderAdminList(){
     const isSuper=a.ruolo==='super';
     const firstTag=!isSuper&&a.first_login?`<div style="margin-top:3px"><span class="tag t-firstlog">⏳ primo accesso</span></div>`:'';
     const fmIdx=fmList.findIndex(f=>f.email===a.email);
-    const delBtn=!isSuper?`<button class="del-btn" onclick="removeFm(${fmIdx})">✕</button>`:'<div style="width:26px"></div>';
-    return `<div class="row"><div class="av ${isSuper?'av-super':'av-fm'}">${ini(a)}</div><div class="row-info"><div class="row-name">${fullN(a)}</div><div class="row-sub">${a.email} · ${a.azienda||''}</div>${firstTag}</div><span class="rb ${isSuper?'rb-super':'rb-fm'}">${isSuper?'SUPER':'FM'}</span>${delBtn}</div>`;
+    const actions=!isSuper
+      ?`<div style="display:flex;gap:4px"><button class="reset-btn" title="Reset password" onclick="resetFmPw(${fmIdx})">🔑</button><button class="del-btn" onclick="removeFm(${fmIdx})">✕</button></div>`
+      :'<div style="width:26px"></div>';
+    return `<div class="row"><div class="av ${isSuper?'av-super':'av-fm'}">${ini(a)}</div><div class="row-info"><div class="row-name">${fullN(a)}</div><div class="row-sub">${a.email} · ${a.azienda||''}</div>${firstTag}</div><span class="rb ${isSuper?'rb-super':'rb-fm'}">${isSuper?'SUPER':'FM'}</span>${actions}</div>`;
   }).join('');
 }
 function renderUList(listId){
@@ -956,6 +1093,19 @@ async function removeUser(i){
     showToast('🗑 Utente rimosso','');
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
+async function resetFmPw(i){
+  const fmList=admins.filter(a=>a.ruolo==='fm');
+  const fm=fmList[i];
+  if(!fm)return;
+  if(!confirm('Reimpostare la password di '+fm.email+'?\nIl FM dovrà impostare una nuova password al prossimo accesso.'))return;
+  try{
+    const res=await API.resetFmPw(fm.email);
+    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    await loadAdmins();renderSuperDash();
+    showToast('✅ Password reimpostata — il FM sceglierà una nuova password al login','blue');
+  }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
+}
+
 async function removeFm(i){
   if(i<0)return;
   // admins array: first entries are super (non deletable), rest are FM

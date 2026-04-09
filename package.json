@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Parking Cloud - Gestione posti aziendali Retelit Spa",
   "dependencies": {
-    "@neondatabase/serverless": "^0.9.0"
+    "@neondatabase/serverless": "^0.9.0",
+    "bcryptjs": "^2.4.3"
   }
 }

@@ -3,6 +3,7 @@
 // GET /.netlify/functions/db-init
 
 const { neon } = require('@neondatabase/serverless');
+const bcrypt = require('bcryptjs');
 
 exports.handler = async () => {
   const sql = neon(process.env.DATABASE_URL);
@@ -54,12 +55,17 @@ exports.handler = async () => {
       ON CONFLICT (cliente) DO NOTHING
     `;
 
-    // Inserisce super admin Parking Cloud se non esistono
+    // Inserisce super admin Parking Cloud se non esistono (password hashate)
+    const hash1 = await bcrypt.hash('pc-admin-2025', 10);
+    const hash2 = await bcrypt.hash('pc-team-2025', 10);
     await sql`
       INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
-      VALUES
-        ('fede@parkingcloud.eu', 'pc-admin-2025', 'super', 'Federico', 'Parking Cloud', 'Parking Cloud Srl', false),
-        ('team@parkingcloud.eu', 'pc-team-2025',  'super', 'Team',     'Parking Cloud', 'Parking Cloud Srl', false)
+      VALUES ('fede@parkingcloud.eu', ${hash1}, 'super', 'Federico', 'Parking Cloud', 'Parking Cloud Srl', false)
+      ON CONFLICT (email) DO NOTHING
+    `;
+    await sql`
+      INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
+      VALUES ('team@parkingcloud.eu', ${hash2}, 'super', 'Team', 'Parking Cloud', 'Parking Cloud Srl', false)
       ON CONFLICT (email) DO NOTHING
     `;
 

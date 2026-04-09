@@ -15,7 +15,7 @@ exports.handler = async () => {
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ occupied: state.occupied, total: state.total, users })
+      body: JSON.stringify({ occupied: state?.occupied ?? 0, total: state?.total ?? 15, users })
     };
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };

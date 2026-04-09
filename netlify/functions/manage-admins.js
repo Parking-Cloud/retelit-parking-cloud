@@ -33,6 +33,16 @@ exports.handler = async (event) => {
       return { statusCode: 200, body: JSON.stringify({ ok: true }) };
     }
 
+    // ── Reset password FM (Super Admin) ──
+    if (event.httpMethod === 'PATCH') {
+      const { email, action } = JSON.parse(event.body);
+      if (action !== 'reset_password') return { statusCode: 400, body: JSON.stringify({ error: 'Azione non valida' }) };
+      const existing = await sql`SELECT id FROM admins WHERE email = ${email.toLowerCase()} AND ruolo = 'fm'`;
+      if (!existing.length) return { statusCode: 404, body: JSON.stringify({ error: 'FM non trovato' }) };
+      await sql`UPDATE admins SET password = null, first_login = true WHERE email = ${email.toLowerCase()}`;
+      return { statusCode: 200, body: JSON.stringify({ ok: true }) };
+    }
+
     return { statusCode: 405, body: 'Method Not Allowed' };
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
