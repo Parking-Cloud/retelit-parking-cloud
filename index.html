@@ -813,7 +813,15 @@ const showToast=(msg,color='')=>{
 const goView=id=>{document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0)};
 const openModal=id=>document.getElementById(id).classList.add('open');
 const closeModal=id=>document.getElementById(id).classList.remove('open');
-['modal-enter','modal-exit','modal-forgot'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id)})});
+['modal-enter','modal-exit','modal-forgot'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('click',function(e){if(e.target===this)closeModal(id)})});
+
+/* Mostra errori JS visibili a schermo per diagnostica */
+window.onerror=function(msg,src,line){
+  const d=document.createElement('div');
+  d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#ef4444;color:#fff;font-size:12px;padding:10px 14px;z-index:9999;font-family:monospace';
+  d.textContent='JS ERROR: '+msg+' (linea '+line+')';
+  document.body.appendChild(d);
+};
 
 let selectedRole='user';
 function selRole(r){
