@@ -2,8 +2,8 @@
 // POST /.netlify/functions/auth
 // Body: { type: 'user_check' | 'admin_login' | 'admin_set_password', ...params }
 
-const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
+const { getDb, requirePost, parseBody, jsonHeaders, errorResponse, signJwt } = require('./utils');
 
 /* ── Password helpers (PBKDF2-SHA512, no external deps) ── */
 function hashPassword(password) {
@@ -24,38 +24,51 @@ function verifyPassword(password, stored) {
 }
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST')
-    return { statusCode: 405, body: 'Method Not Allowed' };
+  const methodError = requirePost(event);
+  if (methodError) return methodError;
 
-  const sql = neon(process.env.DATABASE_URL);
+  const sql = getDb();
   try {
-    const body = JSON.parse(event.body);
+    const body = parseBody(event);
 
     // ── Verifica email utente sulla whitelist ──
     if (body.type === 'user_check') {
       const { email } = body;
-      const [user] = await sql`SELECT * FROM users WHERE email = ${email.toLowerCase()}`;
+      if (!email) return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Email obbligatoria' }) };
+      const [user] = await sql`
+        SELECT email, nome, cognome, targa, pin, registrato, parked
+        FROM users WHERE email = ${email.toLowerCase().trim()}
+      `;
       if (!user)
-        return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'not_whitelisted' }) };
+        return { statusCode: 200, headers: jsonHeaders(), body: JSON.stringify({ ok: false, reason: 'not_whitelisted' }) };
+      const token = signJwt({ email: user.email, ruolo: 'user' }, 'user');
       return {
         statusCode: 200,
-        body: JSON.stringify({ ok: true, user: { email: user.email, nome: user.nome, cognome: user.cognome, targa: user.targa, pin: user.pin, registrato: user.registrato, parked: user.parked } })
+        headers: jsonHeaders(),
+        body: JSON.stringify({ ok: true, user, token }),
       };
     }
 
     // ── Login admin (FM o Super) ──
     if (body.type === 'admin_login') {
       const { email, password, ruolo } = body;
-      const [admin] = await sql`SELECT * FROM admins WHERE email = ${email.toLowerCase()} AND ruolo = ${ruolo}`;
+      if (!email || !ruolo) return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Parametri mancanti' }) };
+      const [admin] = await sql`
+        SELECT email, password, nome, cognome, azienda, ruolo, first_login
+        FROM admins WHERE email = ${email.toLowerCase().trim()} AND ruolo = ${ruolo}
+      `;
       if (!admin)
-        return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'not_found' }) };
+        return { statusCode: 200, headers: jsonHeaders(), body: JSON.stringify({ ok: false, reason: 'not_found' }) };
       if (admin.first_login)
-        return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'first_login', nome: admin.nome, cognome: admin.cognome, azienda: admin.azienda }) };
+        return { statusCode: 200, headers: jsonHeaders(), body: JSON.stringify({ ok: false, reason: 'first_login', nome: admin.nome, cognome: admin.cognome, azienda: admin.azienda }) };
       if (!verifyPassword(password, admin.password))
-        return { statusCode: 200, body: JSON.stringify({ ok: false, reason: 'wrong_password' }) };
+        return { statusCode: 200, headers: jsonHeaders(), body: JSON.stringify({ ok: false, reason: 'wrong_password' }) };
+      const { password: _, ...adminPublic } = admin;
+      const token = signJwt({ email: admin.email, ruolo: admin.ruolo }, 'admin');
       return {
         statusCode: 200,
-        body: JSON.stringify({ ok: true, admin: { email: admin.email, nome: admin.nome, cognome: admin.cognome, azienda: admin.azienda, ruolo: admin.ruolo } })
+        headers: jsonHeaders(),
+        body: JSON.stringify({ ok: true, admin: adminPublic, token }),
       };
     }
 
@@ -63,20 +76,25 @@ exports.handler = async (event) => {
     if (body.type === 'admin_set_password') {
       const { email, password } = body;
       if (!password || password.length < 8)
-        return { statusCode: 400, body: JSON.stringify({ error: 'Password troppo corta' }) };
-      const [admin] = await sql`SELECT * FROM admins WHERE email = ${email.toLowerCase()} AND first_login = true`;
+        return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Password troppo corta' }) };
+      const [admin] = await sql`
+        SELECT email, nome, cognome, azienda, ruolo
+        FROM admins WHERE email = ${email.toLowerCase().trim()} AND first_login = true
+      `;
       if (!admin)
-        return { statusCode: 404, body: JSON.stringify({ error: 'Admin non trovato o già attivato' }) };
+        return { statusCode: 404, headers: jsonHeaders(), body: JSON.stringify({ error: 'Admin non trovato o già attivato' }) };
       const hashed = hashPassword(password);
-      await sql`UPDATE admins SET password = ${hashed}, first_login = false WHERE email = ${email.toLowerCase()}`;
+      await sql`UPDATE admins SET password = ${hashed}, first_login = false WHERE email = ${admin.email}`;
+      const token = signJwt({ email: admin.email, ruolo: admin.ruolo }, 'admin');
       return {
         statusCode: 200,
-        body: JSON.stringify({ ok: true, admin: { email: admin.email, nome: admin.nome, cognome: admin.cognome, azienda: admin.azienda, ruolo: admin.ruolo } })
+        headers: jsonHeaders(),
+        body: JSON.stringify({ ok: true, admin, token }),
       };
     }
 
-    return { statusCode: 400, body: JSON.stringify({ error: 'Tipo richiesta non valido' }) };
+    return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Tipo richiesta non valido' }) };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return errorResponse(err);
   }
 };
