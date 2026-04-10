@@ -806,10 +806,14 @@ let parkOcc   = 0;
 let parkTotal = 15;   /* aggiornato da loadState() */
 let admins    = [];   /* popolato da loadAdmins() */
 
-/* Polling: mantiene lo stato sincronizzato col DB */
-let refreshInterval = null;
-function startPolling(){ if(!refreshInterval) refreshInterval = setInterval(loadState, 30000); }
-function stopPolling(){ clearInterval(refreshInterval); refreshInterval = null; }
+/* Refresh on tab focus: aggiorna lo stato quando l'utente torna sulla tab.
+   Evita polling continuo che consuma le chiamate del DB (Neon free plan). */
+let pollingActive = false;
+function startPolling(){ pollingActive = true; }
+function stopPolling(){ pollingActive = false; }
+document.addEventListener('visibilitychange', () => {
+  if(pollingActive && document.visibilityState === 'visible') loadState();
+});
 
 let session = getSession();
 let fStep=0, fData={};
