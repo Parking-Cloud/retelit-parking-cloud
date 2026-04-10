@@ -37,7 +37,7 @@ exports.handler = async (event) => {
       UPDATE users
       SET nome = ${nome.trim()}, cognome = ${cognome.trim()}, targa = ${normalizedTarga}, registrato = true
       WHERE email = ${jwt.email}
-      RETURNING email, nome, cognome, targa, registrato
+      RETURNING email, nome, cognome, targa, pin, registrato, parked
     `;
     return {
       statusCode: 200,

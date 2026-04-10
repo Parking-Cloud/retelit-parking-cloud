@@ -782,7 +782,7 @@ const authH = (extra={}) => {
 /* Gestione 401: sessione scaduta → logout automatico */
 async function apiFetch(url, opts={}){
   const r = await fetch(url, opts);
-  if(r.status===401){ clearSession(); goView('view-landing'); showToast('⚠️ Sessione scaduta — effettua nuovamente il login',''); return {error:'Sessione scaduta'}; }
+  if(r.status===401){ stopPolling(); clearSession(); goView('view-landing'); showToast('⚠️ Sessione scaduta — effettua nuovamente il login',''); return null; }
   return r.json();
 }
 
@@ -801,32 +801,41 @@ const API = {
   updatePin:   (email,pin) => apiFetch('/.netlify/functions/manage-users',   {method:'PATCH', headers:authH(),body:JSON.stringify({email,pin})}),
 };
 
-let users    = [];   /* popolato da loadState() */
-let parkOcc  = 0;
-const TOTAL  = 15;
-let admins   = [];   /* popolato da loadAdmins() */
+let users     = [];   /* popolato da loadState() */
+let parkOcc   = 0;
+let parkTotal = 15;   /* aggiornato da loadState() */
+let admins    = [];   /* popolato da loadAdmins() */
+
+/* Polling: mantiene lo stato sincronizzato col DB */
+let refreshInterval = null;
+function startPolling(){ if(!refreshInterval) refreshInterval = setInterval(loadState, 30000); }
+function stopPolling(){ clearInterval(refreshInterval); refreshInterval = null; }
 
 let session = getSession();
 let fStep=0, fData={};
 
-/* Carica stato iniziale dal DB */
+/* Carica stato dal DB */
 async function loadState(){
   try{
     const data = await API.getState();
-    users   = data.users  || [];
-    parkOcc = data.occupied || 0;
+    if(!data) return;
+    users     = data.users    || [];
+    parkOcc   = data.occupied || 0;
+    parkTotal = data.total    || parkTotal;
     renderFmDash(); renderSuperDash(); renderUserDash();
-  }catch(e){ console.error('loadState error',e); }
+  }catch(e){ console.error('loadState error',e); showToast('⚠️ Impossibile aggiornare lo stato del parcheggio',''); }
 }
 
 async function loadAdmins(){
   try{
     const data = await API.getAdmins();
+    if(!data) return;
     admins = data.admins || [];
     renderAdminList();
-  }catch(e){ console.error('loadAdmins error',e); }
+  }catch(e){ console.error('loadAdmins error',e); showToast('⚠️ Impossibile caricare la lista admin',''); }
 }
 
+const escHtml=s=>s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):'';
 const pad2=n=>n.toString().padStart(2,'0');
 const nowStr=()=>{const d=new Date();return pad2(d.getHours())+':'+pad2(d.getMinutes())};
 const isEmail=e=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
@@ -880,7 +889,7 @@ async function landingGo(){
     // aggiorna array locale
     const idx=users.findIndex(u=>u.email===email);
     if(idx>=0) users[idx]=user; else users.push(user);
-    if(user.registrato&&user.targa){loadUserDash(user)}
+    if(user.registrato&&user.targa){loadUserDash(user);startPolling()}
     else{document.getElementById('f-nome').value=user.nome||'';document.getElementById('f-cognome').value=user.cognome||'';document.getElementById('f-targa').value=user.targa||'';fStep=0;updStepper();document.getElementById('u-funnel').style.display='block';document.getElementById('u-dash').style.display='none';goView('view-user')}
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
@@ -904,10 +913,10 @@ async function adminLogin(role){
     session={type:role,email,token:res.token};setSession(session);
     if(role==='super'){
       document.getElementById('su-nav-name').textContent=fullN(admin)+' · '+admin.azienda;
-      await loadState();await loadAdmins();renderSuperDash();goView('view-super');showToast('✅ Accesso Super Admin','blue');
+      await loadState();await loadAdmins();renderSuperDash();goView('view-super');showToast('✅ Accesso Super Admin','blue');startPolling();
     } else {
       document.getElementById('fm-nav-name').textContent=fullN(admin)+' · '+admin.azienda;
-      await loadState();renderFmDash();goView('view-fm');showToast('✅ Accesso Facility Manager','blue');
+      await loadState();renderFmDash();goView('view-fm');showToast('✅ Accesso Facility Manager','blue');startPolling();
     }
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
@@ -944,12 +953,12 @@ async function setFmPw(){
     document.getElementById('fm-nav-name').textContent=fullN(admin)+' · '+(admin.azienda||'');
     document.getElementById('fm-pass-wrap').style.display='block';
     document.getElementById('fm-firstlogin').style.display='none';
-    await loadState();renderFmDash();goView('view-fm');showToast('✅ Password impostata. Benvenuto!','blue');
+    await loadState();renderFmDash();goView('view-fm');showToast('✅ Password impostata. Benvenuto!','blue');startPolling();
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 
 function adminLogout(){
-  session=null;clearSession();
+  stopPolling();session=null;clearSession();
   document.getElementById('fm-pass-wrap').style.display='block';
   document.getElementById('fm-firstlogin').style.display='none';
   goView('view-landing');showToast('👋 Uscita effettuata','');
@@ -964,7 +973,7 @@ async function createFm(){
   if(!isEmail(email)){showToast('⚠️ Email non valida','');return}
   try{
     const res=await API.addAdmin({email,nome,cognome,azienda:company});
-    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    if(!res||!res.ok){showToast('⚠️ '+(res?.error||'Errore'),'');return}
     admins.push(res.admin);
     ['su-fm-nome','su-fm-cognome','su-fm-email','su-fm-company'].forEach(id=>document.getElementById(id).value='');
     togForm('su-fm-af');renderSuperDash();showToast('✅ FM creato — imposterà la password al primo accesso','blue');
@@ -993,15 +1002,15 @@ function fNext1(){
   err.classList.remove('show');ti.classList.remove('error');
   fData.nome=nome;fData.cognome=cognome;fData.targa=targa;
   document.getElementById('f-summ').innerHTML=`
-    <div class="summ-row"><span class="summ-key">Nome</span><span class="summ-val">${nome} ${cognome}</span></div>
-    <div class="summ-row"><span class="summ-key">Email</span><span class="summ-val">${fData.email}</span></div>
-    <div class="summ-row"><span class="summ-key">Targa</span><span class="summ-val"><span class="plate-pill">${targa}</span></span></div>`;
+    <div class="summ-row"><span class="summ-key">Nome</span><span class="summ-val">${escHtml(nome)} ${escHtml(cognome)}</span></div>
+    <div class="summ-row"><span class="summ-key">Email</span><span class="summ-val">${escHtml(fData.email)}</span></div>
+    <div class="summ-row"><span class="summ-key">Targa</span><span class="summ-val"><span class="plate-pill">${escHtml(targa)}</span></span></div>`;
   fGoStep(1);
 }
 async function fNext2(){
   try{
     const res=await API.register({nome:fData.nome,cognome:fData.cognome,targa:fData.targa});
-    if(!res.ok){showToast('⚠️ '+(res.error||'Errore registrazione'),'');return}
+    if(!res||!res.ok){showToast('⚠️ '+(res?.error||'Errore registrazione'),'');return}
     const user=res.user;
     // aggiorna array locale
     const idx=users.findIndex(u=>u.email===user.email);
@@ -1020,14 +1029,14 @@ function loadUserDash(user){
   goView('view-user');renderUserDash();
 }
 function userLogout(){
-  session=null;clearSession();
+  stopPolling();session=null;clearSession();
   document.getElementById('u-dash').style.display='none';document.getElementById('u-funnel').style.display='block';document.getElementById('l-email').value='';
   fData={};fStep=0;updStepper();goView('view-landing');showToast('👋 Uscita effettuata','');
 }
 
 const curEmail=()=>session&&session.type==='user'?session.email:fData.email;
 function renderUserDash(){
-  const free=TOTAL-parkOcc,pct=Math.max(0,(free/TOTAL)*100);
+  const free=parkTotal-parkOcc,pct=Math.max(0,(free/parkTotal)*100);
   const user=findUser(curEmail());const parked=user?!!user.parked:false;
   document.getElementById('u-free').textContent=free;document.getElementById('u-free').className='hero-n'+(free===0?' full':free<=3?' warn':'');
   document.getElementById('u-occ').textContent=parkOcc+(parkOcc===1?' posto occupato':' posti occupati');
@@ -1044,31 +1053,33 @@ function renderUserDash(){
     else{pinSection.style.display='none'}
   }
 }
-function askEnter(){const u=findUser(curEmail());if(!u||u.parked||parkOcc>=TOTAL)return;openModal('modal-enter')}
+function askEnter(){const u=findUser(curEmail());if(!u||u.parked||parkOcc>=parkTotal)return;openModal('modal-enter')}
 function askExit(){const u=findUser(curEmail());if(!u||!u.parked)return;openModal('modal-exit')}
 async function confirmEnter(){
   closeModal('modal-enter');
   try{
     const res=await API.updatePark({action:'enter'});
-    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
-    parkOcc=res.occupied;
+    if(!res||!res.ok){showToast('⚠️ '+(res?.error||'Errore'),'');return}
+    parkOcc=res.occupied; parkTotal=res.total||parkTotal;
     const u=findUser(curEmail());if(u)u.parked=true;
     renderUserDash();renderFmDash();renderSuperDash();showToast('✅ Ingresso registrato','blue');
+    loadState();
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 async function confirmExit(){
   closeModal('modal-exit');
   try{
     const res=await API.updatePark({action:'exit'});
-    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
-    parkOcc=res.occupied;
+    if(!res||!res.ok){showToast('⚠️ '+(res?.error||'Errore'),'');return}
+    parkOcc=res.occupied; parkTotal=res.total||parkTotal;
     const u=findUser(curEmail());if(u)u.parked=false;
     renderUserDash();renderFmDash();renderSuperDash();showToast('👋 Uscita registrata','');
+    loadState();
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
 }
 
 function renderFmDash(){
-  const free=TOTAL-parkOcc,pct=Math.max(0,(free/TOTAL)*100);
+  const free=parkTotal-parkOcc,pct=Math.max(0,(free/parkTotal)*100);
   document.getElementById('fm-free').textContent=free;document.getElementById('fm-free').className='hero-n'+(free===0?' full':free<=3?' warn':'');
   document.getElementById('fm-occ').textContent=parkOcc+(parkOcc===1?' posto occupato':' posti occupati');
   document.getElementById('fm-prog').style.width=pct+'%';document.getElementById('fm-prog').className='prog-fill'+(free===0?' full':free<=3?' warn':'');
@@ -1078,7 +1089,7 @@ function renderFmDash(){
   renderUList('fm-ulist');
 }
 function renderSuperDash(){
-  const free=TOTAL-parkOcc,pct=Math.max(0,(free/TOTAL)*100);
+  const free=parkTotal-parkOcc,pct=Math.max(0,(free/parkTotal)*100);
   document.getElementById('su-free').textContent=free;document.getElementById('su-free').className='hero-n'+(free===0?' full':free<=3?' warn':'');
   document.getElementById('su-occ').textContent=parkOcc+(parkOcc===1?' posto occupato':' posti occupati');
   document.getElementById('su-prog').style.width=pct+'%';document.getElementById('su-prog').className='prog-fill'+(free===0?' full':free<=3?' warn':'');
@@ -1097,7 +1108,7 @@ function renderAdminList(){
     const actions=!isSuper
       ?`<div style="display:flex;gap:4px"><button class="reset-btn" title="Reset password" onclick="resetFmPw(${fmIdx})">🔑</button><button class="del-btn" onclick="removeFm(${fmIdx})">✕</button></div>`
       :'<div style="width:26px"></div>';
-    return `<div class="row"><div class="av ${isSuper?'av-super':'av-fm'}">${ini(a)}</div><div class="row-info"><div class="row-name">${fullN(a)}</div><div class="row-sub">${a.email} · ${a.azienda||''}</div>${firstTag}</div><span class="rb ${isSuper?'rb-super':'rb-fm'}">${isSuper?'SUPER':'FM'}</span>${actions}</div>`;
+    return `<div class="row"><div class="av ${isSuper?'av-super':'av-fm'}">${escHtml(ini(a))}</div><div class="row-info"><div class="row-name">${escHtml(fullN(a))}</div><div class="row-sub">${escHtml(a.email)} · ${escHtml(a.azienda||'')}</div>${firstTag}</div><span class="rb ${isSuper?'rb-super':'rb-fm'}">${isSuper?'SUPER':'FM'}</span>${actions}</div>`;
   }).join('');
 }
 function renderUList(listId){
@@ -1108,7 +1119,7 @@ function renderUList(listId){
     const parkedB=u.parked?`<span class="tag t-parked">🚗 in sosta</span>`:'';
     const pendB=!u.registrato?`<span class="tag t-pending">⏳ non registrato</span>`:'';
     const pinB=u.pin?`<span class="tag" style="background:rgba(21,70,212,.08);color:var(--blue);font-weight:700">🔑 ${u.pin}</span>`:'';
-    return `<div class="row"><div class="av av-user">${ini(u)}</div><div class="row-info"><div class="row-name">${u.registrato?fullN(u):u.email}</div><div class="row-meta"><span style="font-size:10px;color:var(--muted);font-weight:600">${u.email}</span>${plate}${parkedB}${pendB}${pinB}</div></div><div style="display:flex;gap:4px"><button class="pin-btn" title="Modifica PIN" onclick="updateUserPin(${i})">✏️</button><button class="del-btn" onclick="removeUser(${i})">✕</button></div></div>`;
+    return `<div class="row"><div class="av av-user">${escHtml(ini(u))}</div><div class="row-info"><div class="row-name">${escHtml(u.registrato?fullN(u):u.email)}</div><div class="row-meta"><span style="font-size:10px;color:var(--muted);font-weight:600">${escHtml(u.email)}</span>${plate}${parkedB}${pendB}${pinB}</div></div><div style="display:flex;gap:4px"><button class="pin-btn" title="Modifica PIN" onclick="updateUserPin(${i})">✏️</button><button class="del-btn" onclick="removeUser(${i})">✕</button></div></div>`;
   }).join('');
 }
 
@@ -1125,7 +1136,7 @@ async function addUser(prefix){
   if(pin&&pin.length<4){showToast('⚠️ PIN min. 4 cifre','');return}
   try{
     const res=await API.addUser({nome,cognome,email,targa,pin});
-    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    if(!res||!res.ok){showToast('⚠️ '+(res?.error||'Errore'),'');return}
     users.push(res.user);
     [p+'-nome',p+'-cognome',p+'-email',p+'-targa',p+'-pin'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});
     togForm(prefix==='fm'?'fm-af':'su-u-af');
@@ -1141,7 +1152,7 @@ async function updateUserPin(i){
   if(pin!==''&&pinClean.length<4){showToast('⚠️ PIN min. 4 cifre numeriche','');return}
   try{
     const res=await API.updatePin(u.email,pinClean||null);
-    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    if(!res||!res.ok){showToast('⚠️ '+(res?.error||'Errore'),'');return}
     users[i]={...u,pin:pinClean||null};
     renderFmDash();renderSuperDash();renderUserDash();
     showToast('✅ PIN aggiornato','blue');
@@ -1150,7 +1161,8 @@ async function updateUserPin(i){
 async function removeUser(i){
   const u=users[i];
   try{
-    await API.removeUser(u.email);
+    const res=await API.removeUser(u.email);
+    if(!res) return;
     if(session&&session.email===u.email){session=null;clearSession()}
     users.splice(i,1);
     if(u.parked&&parkOcc>0) parkOcc--;
@@ -1165,7 +1177,7 @@ async function resetFmPw(i){
   if(!confirm('Reimpostare la password di '+fm.email+'?\nIl FM dovrà impostare una nuova password al prossimo accesso.'))return;
   try{
     const res=await API.resetFmPw(fm.email);
-    if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
+    if(!res||!res.ok){showToast('⚠️ '+(res?.error||'Errore'),'');return}
     await loadAdmins();renderSuperDash();
     showToast('✅ Password reimpostata — il FM sceglierà una nuova password al login','blue');
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
@@ -1173,12 +1185,11 @@ async function resetFmPw(i){
 
 async function removeFm(i){
   if(i<0)return;
-  // admins array: first entries are super (non deletable), rest are FM
-  const superCount = admins.filter(a=>a.ruolo==='super').length;
   const fm = admins.filter(a=>a.ruolo==='fm')[i];
   if(!fm)return;
   try{
-    await API.removeAdmin(fm.email);
+    const res=await API.removeAdmin(fm.email);
+    if(!res) return;
     await loadAdmins();renderSuperDash();
     showToast('🗑 FM rimosso','');
   }catch(e){showToast('⚠️ Errore di connessione','');console.error(e)}
@@ -1189,9 +1200,9 @@ async function init(){
 
   if(session.type==='user'){
     try{
-      await loadState(); // get-state richiede JWT utente
+      await loadState();
       const u=findUser(session.email);
-      if(u&&u.registrato&&u.targa){fData.email=session.email;loadUserDash(u)}
+      if(u&&u.registrato&&u.targa){fData.email=session.email;loadUserDash(u);startPolling()}
       else{session=null;clearSession();goView('view-landing')}
     }catch(e){session=null;clearSession();goView('view-landing')}
   }
@@ -1207,6 +1218,7 @@ async function init(){
         document.getElementById('su-nav-name').textContent=fullN(admin)+' · '+(admin.azienda||'');
         renderSuperDash();goView('view-super');
       }
+      startPolling();
     }catch(e){session=null;clearSession();goView('view-landing')}
   }
 }
