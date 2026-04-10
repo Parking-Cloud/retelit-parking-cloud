@@ -1,6 +1,6 @@
 // netlify/functions/db-init.js
 // Chiama questa function UNA VOLTA dopo il deploy per creare le tabelle
-// GET /.netlify/functions/db-init
+// GET /.netlify/functions/db-init?secret=<INIT_SECRET>
 
 const { neon } = require('@neondatabase/serverless');
 const crypto = require('crypto');
@@ -11,9 +11,12 @@ function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
-exports.handler = async () => {
-  const sql = neon(process.env.DATABASE_URL);
+exports.handler = async (event) => {
+  const initSecret = process.env.INIT_SECRET;
+  if (!initSecret || event.queryStringParameters?.secret !== initSecret)
+    return { statusCode: 403, body: JSON.stringify({ error: 'Accesso negato' }) };
 
+  const sql = neon(process.env.DATABASE_URL);
   try {
     await sql`
       CREATE TABLE IF NOT EXISTS admins (
@@ -48,7 +51,6 @@ exports.handler = async () => {
         total    INTEGER DEFAULT 15
       )
     `;
-    // Migration sicura: aggiunge colonna pin se non esiste
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS pin TEXT`;
 
     await sql`
@@ -57,18 +59,27 @@ exports.handler = async () => {
       ON CONFLICT (cliente) DO NOTHING
     `;
 
-    const hash1 = hashPassword('pc-admin-2025');
-    const hash2 = hashPassword('pc-team-2025');
-    await sql`
-      INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
-      VALUES ('fede@parkingcloud.eu', ${hash1}, 'super', 'Federico', 'Parking Cloud', 'Parking Cloud Srl', false)
-      ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, first_login = false
-    `;
-    await sql`
-      INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
-      VALUES ('team@parkingcloud.eu', ${hash2}, 'super', 'Team', 'Parking Cloud', 'Parking Cloud Srl', false)
-      ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, first_login = false
-    `;
+    // Le password degli admin super vengono impostate via env vars, non hardcoded
+    const superPass1 = process.env.SUPER_ADMIN_PASS_1;
+    const superPass2 = process.env.SUPER_ADMIN_PASS_2;
+
+    if (superPass1) {
+      const hash1 = hashPassword(superPass1);
+      await sql`
+        INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
+        VALUES ('fede@parkingcloud.eu', ${hash1}, 'super', 'Federico', 'Parking Cloud', 'Parking Cloud Srl', false)
+        ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, first_login = false
+      `;
+    }
+    if (superPass2) {
+      const hash2 = hashPassword(superPass2);
+      await sql`
+        INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
+        VALUES ('team@parkingcloud.eu', ${hash2}, 'super', 'Team', 'Parking Cloud', 'Parking Cloud Srl', false)
+        ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password, first_login = false
+      `;
+    }
+
     await sql`
       INSERT INTO admins (email, password, ruolo, nome, cognome, azienda, first_login)
       VALUES ('facility@retelit.it', null, 'fm', 'Facility', 'Manager', 'Retelit Spa', true)
@@ -77,7 +88,7 @@ exports.handler = async () => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, message: 'Tabelle create con successo' })
+      body: JSON.stringify({ ok: true, message: 'Tabelle create con successo' }),
     };
   } catch (err) {
     return { statusCode: 500, body: JSON.stringify({ ok: false, error: err.message }) };

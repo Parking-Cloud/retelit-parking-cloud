@@ -765,25 +765,41 @@ body{font-family:var(--font);background:#EEF2FF;color:var(--text);min-height:100
 /* ═══════════════════════════════════════════
    API — tutte le chiamate al backend Netlify
    ═══════════════════════════════════════════ */
-const API = {
-  getState:    ()          => fetch('/.netlify/functions/get-state').then(r=>r.json()),
-  auth:        (body)      => fetch('/.netlify/functions/auth',          {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
-  updatePark:  (body)      => fetch('/.netlify/functions/update-parking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
-  register:    (body)      => fetch('/.netlify/functions/register',      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
-  getUsers:    ()          => fetch('/.netlify/functions/manage-users').then(r=>r.json()),
-  addUser:     (body)      => fetch('/.netlify/functions/manage-users',  {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
-  removeUser:  (email)     => fetch('/.netlify/functions/manage-users',  {method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}).then(r=>r.json()),
-  getAdmins:   ()          => fetch('/.netlify/functions/manage-admins').then(r=>r.json()),
-  addAdmin:    (body)      => fetch('/.netlify/functions/manage-admins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
-  removeAdmin: (email)     => fetch('/.netlify/functions/manage-admins', {method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})}).then(r=>r.json()),
-  resetFmPw:   (email)     => fetch('/.netlify/functions/manage-admins', {method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify({email,action:'reset_password'})}).then(r=>r.json()),
-  updatePin:   (email,pin) => fetch('/.netlify/functions/manage-users',  {method:'PATCH', headers:{'Content-Type':'application/json'},body:JSON.stringify({email,pin})}).then(r=>r.json()),
-};
-
 /* Sessione — rimane solo nel sessionStorage (tab corrente) */
 const getSession  = ()    => { try{return JSON.parse(sessionStorage.getItem('pc_session'))}catch(e){return null} };
 const setSession  = (v)   => sessionStorage.setItem('pc_session', JSON.stringify(v));
 const clearSession= ()    => sessionStorage.removeItem('pc_session');
+const getToken    = ()    => getSession()?.token || null;
+
+/* Header autenticati */
+const authH = (extra={}) => {
+  const t = getToken();
+  const h = {'Content-Type':'application/json',...extra};
+  if(t) h['Authorization']='Bearer '+t;
+  return h;
+};
+
+/* Gestione 401: sessione scaduta → logout automatico */
+async function apiFetch(url, opts={}){
+  const r = await fetch(url, opts);
+  if(r.status===401){ clearSession(); goView('view-landing'); showToast('⚠️ Sessione scaduta — effettua nuovamente il login',''); return {error:'Sessione scaduta'}; }
+  return r.json();
+}
+
+const API = {
+  getState:    ()          => apiFetch('/.netlify/functions/get-state', {headers:authH()}),
+  auth:        (body)      => fetch('/.netlify/functions/auth', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  updatePark:  (body)      => apiFetch('/.netlify/functions/update-parking', {method:'POST',headers:authH(),body:JSON.stringify(body)}),
+  register:    (body)      => apiFetch('/.netlify/functions/register',       {method:'POST',headers:authH(),body:JSON.stringify(body)}),
+  getUsers:    ()          => apiFetch('/.netlify/functions/manage-users',   {headers:authH()}),
+  addUser:     (body)      => apiFetch('/.netlify/functions/manage-users',   {method:'POST',  headers:authH(),body:JSON.stringify(body)}),
+  removeUser:  (email)     => apiFetch('/.netlify/functions/manage-users',   {method:'DELETE',headers:authH(),body:JSON.stringify({email})}),
+  getAdmins:   ()          => apiFetch('/.netlify/functions/manage-admins',  {headers:authH()}),
+  addAdmin:    (body)      => apiFetch('/.netlify/functions/manage-admins',  {method:'POST',  headers:authH(),body:JSON.stringify(body)}),
+  removeAdmin: (email)     => apiFetch('/.netlify/functions/manage-admins',  {method:'DELETE',headers:authH(),body:JSON.stringify({email})}),
+  resetFmPw:   (email)     => apiFetch('/.netlify/functions/manage-admins',  {method:'PATCH', headers:authH(),body:JSON.stringify({email,action:'reset_password'})}),
+  updatePin:   (email,pin) => apiFetch('/.netlify/functions/manage-users',   {method:'PATCH', headers:authH(),body:JSON.stringify({email,pin})}),
+};
 
 let users    = [];   /* popolato da loadState() */
 let parkOcc  = 0;
@@ -860,7 +876,7 @@ async function landingGo(){
     const res=await API.auth({type:'user_check',email});
     if(!res.ok){blockEl.classList.add('show');document.getElementById('l-email').classList.add('error');return}
     const user=res.user;
-    fData.email=email;session={type:'user',email};setSession(session);
+    fData.email=email;session={type:'user',email,token:res.token};setSession(session);
     // aggiorna array locale
     const idx=users.findIndex(u=>u.email===email);
     if(idx>=0) users[idx]=user; else users.push(user);
@@ -885,7 +901,7 @@ async function adminLogin(role){
       errEl.classList.add('show');return;
     }
     const admin=res.admin;
-    session={type:role,email};setSession(session);
+    session={type:role,email,token:res.token};setSession(session);
     if(role==='super'){
       document.getElementById('su-nav-name').textContent=fullN(admin)+' · '+admin.azienda;
       await loadState();await loadAdmins();renderSuperDash();goView('view-super');showToast('✅ Accesso Super Admin','blue');
@@ -923,7 +939,7 @@ async function setFmPw(){
     const res=await API.auth({type:'admin_set_password',email:fData._fmPending,password:pw1});
     if(!res.ok){errEl.textContent=res.error||'Errore';errEl.classList.add('show');return}
     const admin=res.admin;
-    session={type:'fm',email:admin.email};setSession(session);
+    session={type:'fm',email:admin.email,token:res.token};setSession(session);
     admins=admins.map(a=>a.email===admin.email?{...a,...admin}:a);
     document.getElementById('fm-nav-name').textContent=fullN(admin)+' · '+(admin.azienda||'');
     document.getElementById('fm-pass-wrap').style.display='block';
@@ -984,7 +1000,7 @@ function fNext1(){
 }
 async function fNext2(){
   try{
-    const res=await API.register({email:fData.email,nome:fData.nome,cognome:fData.cognome,targa:fData.targa});
+    const res=await API.register({nome:fData.nome,cognome:fData.cognome,targa:fData.targa});
     if(!res.ok){showToast('⚠️ '+(res.error||'Errore registrazione'),'');return}
     const user=res.user;
     // aggiorna array locale
@@ -1033,7 +1049,7 @@ function askExit(){const u=findUser(curEmail());if(!u||!u.parked)return;openModa
 async function confirmEnter(){
   closeModal('modal-enter');
   try{
-    const res=await API.updatePark({email:curEmail(),action:'enter'});
+    const res=await API.updatePark({action:'enter'});
     if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
     parkOcc=res.occupied;
     const u=findUser(curEmail());if(u)u.parked=true;
@@ -1043,7 +1059,7 @@ async function confirmEnter(){
 async function confirmExit(){
   closeModal('modal-exit');
   try{
-    const res=await API.updatePark({email:curEmail(),action:'exit'});
+    const res=await API.updatePark({action:'exit'});
     if(!res.ok){showToast('⚠️ '+(res.error||'Errore'),'');return}
     parkOcc=res.occupied;
     const u=findUser(curEmail());if(u)u.parked=false;
@@ -1169,20 +1185,19 @@ async function removeFm(i){
 }
 
 async function init(){
-  // Carica sempre lo stato dal DB
-  await loadState();
-
   if(!session){goView('view-landing');return}
 
   if(session.type==='user'){
-    const u=findUser(session.email);
-    if(u&&u.registrato&&u.targa){fData.email=session.email;loadUserDash(u)}
-    else{session=null;clearSession();goView('view-landing')}
+    try{
+      await loadState(); // get-state richiede JWT utente
+      const u=findUser(session.email);
+      if(u&&u.registrato&&u.targa){fData.email=session.email;loadUserDash(u)}
+      else{session=null;clearSession();goView('view-landing')}
+    }catch(e){session=null;clearSession();goView('view-landing')}
   }
   else if(session.type==='fm'||session.type==='super'){
-    // Verifica sessione admin tramite API
     try{
-      await loadAdmins();
+      await loadState();await loadAdmins();
       const admin=findAdmin(session.email);
       if(!admin||admin.first_login){session=null;clearSession();goView('view-landing');return}
       if(session.type==='fm'){

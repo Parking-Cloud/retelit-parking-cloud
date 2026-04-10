@@ -1,27 +1,29 @@
 // netlify/functions/update-parking.js
 // POST /.netlify/functions/update-parking
-// Body: { email, action: 'enter' | 'exit' }
+// Body: { action: 'enter' | 'exit' }
+// Autenticato: ruolo 'user' (email estratta dal JWT)
 
-const { getDb, requirePost, parseBody, jsonHeaders, errorResponse, CLIENTE } = require('./utils');
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const { getDb, requirePost, parseBody, jsonHeaders, errorResponse, requireRole, CLIENTE } = require('./utils');
 
 exports.handler = async (event) => {
   const methodError = requirePost(event);
   if (methodError) return methodError;
 
+  let jwt;
+  try {
+    jwt = requireRole(event, 'user');
+  } catch (err) {
+    return errorResponse(err);
+  }
+
   const sql = getDb();
   try {
-    const { email, action } = parseBody(event);
+    const { action } = parseBody(event);
 
-    if (!email || !['enter', 'exit'].includes(action))
-      return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Parametri non validi' }) };
+    if (!['enter', 'exit'].includes(action))
+      return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Azione non valida' }) };
 
-    const normalizedEmail = email.toLowerCase().trim();
-    if (!EMAIL_RE.test(normalizedEmail))
-      return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Email non valida' }) };
-
-    const [user] = await sql`SELECT id, parked FROM users WHERE email = ${normalizedEmail}`;
+    const [user] = await sql`SELECT id, parked FROM users WHERE email = ${jwt.email}`;
     if (!user)
       return { statusCode: 404, headers: jsonHeaders(), body: JSON.stringify({ error: 'Utente non trovato' }) };
 
@@ -31,7 +33,7 @@ exports.handler = async (event) => {
       if (user.parked)
         return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Già parcheggiato' }) };
 
-      // Atomic: increment only if there's space, returns null if parking is full
+      // Atomic: incrementa solo se c'è posto, altrimenti torna null
       const [result] = await sql`
         UPDATE parking_state
         SET occupied = occupied + 1
