@@ -2,33 +2,46 @@
 // POST /.netlify/functions/register
 // Body: { email, nome, cognome, targa }
 
-const { neon } = require('@neondatabase/serverless');
+const { getDb, requirePost, parseBody, jsonHeaders, errorResponse } = require('./utils');
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TARGA_RE = /^[A-Z0-9]{5,10}$/;
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST')
-    return { statusCode: 405, body: 'Method Not Allowed' };
+  const methodError = requirePost(event);
+  if (methodError) return methodError;
 
-  const sql = neon(process.env.DATABASE_URL);
+  const sql = getDb();
   try {
-    const { email, nome, cognome, targa } = JSON.parse(event.body);
-    if (!email || !nome || !cognome || !targa)
-      return { statusCode: 400, body: JSON.stringify({ error: 'Tutti i campi sono obbligatori' }) };
+    const { email, nome, cognome, targa } = parseBody(event);
 
-    const [user] = await sql`SELECT id FROM users WHERE email = ${email.toLowerCase()}`;
+    if (!email || !nome || !cognome || !targa)
+      return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Tutti i campi sono obbligatori' }) };
+
+    const normalizedEmail = email.toLowerCase().trim();
+    if (!EMAIL_RE.test(normalizedEmail))
+      return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Email non valida' }) };
+
+    const normalizedTarga = targa.toUpperCase().trim();
+    if (!TARGA_RE.test(normalizedTarga))
+      return { statusCode: 400, headers: jsonHeaders(), body: JSON.stringify({ error: 'Targa non valida' }) };
+
+    const [user] = await sql`SELECT id FROM users WHERE email = ${normalizedEmail}`;
     if (!user)
-      return { statusCode: 404, body: JSON.stringify({ error: 'Email non in whitelist' }) };
+      return { statusCode: 404, headers: jsonHeaders(), body: JSON.stringify({ error: 'Email non in whitelist' }) };
 
     const [updated] = await sql`
       UPDATE users
-      SET nome = ${nome}, cognome = ${cognome}, targa = ${targa.toUpperCase()}, registrato = true
-      WHERE email = ${email.toLowerCase()}
-      RETURNING *
+      SET nome = ${nome.trim()}, cognome = ${cognome.trim()}, targa = ${normalizedTarga}, registrato = true
+      WHERE email = ${normalizedEmail}
+      RETURNING email, nome, cognome, targa, registrato
     `;
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, user: updated })
+      headers: jsonHeaders(),
+      body: JSON.stringify({ ok: true, user: updated }),
     };
   } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    return errorResponse(err);
   }
 };
